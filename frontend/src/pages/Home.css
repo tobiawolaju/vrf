@@ -29,3 +29,112 @@
     font-size: 1.1rem;
     margin-bottom: var(--spacing-sm);
 }
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+}
+
+.user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-wallets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.wallet-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.wallet-tag.eth {
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.wallet-tag.sol {
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.wallet-icon {
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.wallet-tag.eth .wallet-icon {
+    color: var(--primary-color);
+}
+
+.wallet-tag.sol .wallet-icon {
+    color: var(--success-color);
+}
+
+.btn-logout {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-logout:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.btn-logout svg {
+    width: 18px;
+    height: 18px;
+}

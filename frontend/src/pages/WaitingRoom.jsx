@@ -31,4 +31,4 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
     );
 };
 
-export default WaitingRoom; yy
+export default WaitingRoom;

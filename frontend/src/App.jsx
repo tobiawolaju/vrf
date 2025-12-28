@@ -11,7 +11,7 @@ import Gameplay from './pages/Gameplay';
 const API_BASE = '/api';
 
 function App() {
-    const { login, authenticated, user } = usePrivy();
+    const { login, logout, authenticated, user } = usePrivy();
     const [view, setView] = useState('home');
     const [gameCode, setGameCode] = useState('');
     const [playerId, setPlayerId] = useState('');
@@ -210,7 +210,18 @@ function App() {
 
     // RENDER ROUTING
     if (view === 'home') {
-        return <Home startDelay={startDelay} setStartDelay={setStartDelay} createGame={createGame} setView={setView} login={login} authenticated={authenticated} />;
+        return (
+            <Home
+                startDelay={startDelay}
+                setStartDelay={setStartDelay}
+                createGame={createGame}
+                setView={setView}
+                login={login}
+                logout={logout}
+                authenticated={authenticated}
+                user={user}
+            />
+        );
     }
 
     if (view === 'create') {
