@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import { usePrivy } from '@privy-io/react-auth';
-
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
