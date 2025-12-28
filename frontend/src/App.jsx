@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Pages
 import Home from './pages/Home';
@@ -11,6 +12,7 @@ import Gameplay from './pages/Gameplay';
 const API_BASE = '/api';
 
 function App() {
+    const { login, authenticated, user } = usePrivy();
     const [view, setView] = useState('home');
     const [gameCode, setGameCode] = useState('');
     const [playerId, setPlayerId] = useState('');
@@ -138,8 +140,8 @@ function App() {
     };
 
     const joinGame = async () => {
-        if (!joinPlayerName.trim()) {
-            alert('Please enter your name');
+        if (!joinPlayerName.trim() && !authenticated) {
+            alert('Please enter your name or log in');
             return;
         }
         try {
@@ -149,7 +151,9 @@ function App() {
                 body: JSON.stringify({
                     gameCode: joinCode,
                     playerName: joinPlayerName,
-                    avatar: playerAvatar
+                    avatar: playerAvatar,
+                    privyId: authenticated ? user.id : null,
+                    privyUser: authenticated ? user : null
                 })
             });
             const data = await res.json();
@@ -212,6 +216,10 @@ function App() {
                 setPlayerAvatar={setPlayerAvatar}
                 joinGame={joinGame}
                 setView={setView}
+                // Auth props
+                login={login}
+                authenticated={authenticated}
+                user={user}
             />
         );
     }

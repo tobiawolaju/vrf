@@ -1,9 +1,17 @@
 import React from 'react';
 import './JoinGame.css';
 
-const JoinGame = ({ joinCode, setJoinCode, joinPlayerName, setJoinPlayerName, playerAvatar, setPlayerAvatar, joinGame, setView }) => {
+const JoinGame = ({ joinCode, setJoinCode, joinPlayerName, setJoinPlayerName, playerAvatar, setPlayerAvatar, joinGame, setView, login, authenticated, user }) => {
 
     const emojiOptions = ['😊', '😎', '🤓', '🥳', '🤩', '😇', '🤠', '🥸', '🤡', '👻', '🤖', '👽', '🦄', '🐶', '🐱', '🐼', '🦊', '🐸'];
+
+    // Auto-fill name on login
+    React.useEffect(() => {
+        if (authenticated && user) {
+            const name = user.twitter?.username || user.wallet?.address?.slice(0, 8) || user.email?.address?.split('@')[0] || 'Player';
+            setJoinPlayerName(name);
+        }
+    }, [authenticated, user, setJoinPlayerName]);
 
     return (
         <div className="join-game-container">
@@ -23,7 +31,7 @@ const JoinGame = ({ joinCode, setJoinCode, joinPlayerName, setJoinPlayerName, pl
                     )}
                     <label>
                         Your Name:
-                        <input type="text" value={joinPlayerName} onChange={(e) => setJoinPlayerName(e.target.value)} placeholder="Player Name" onKeyPress={(e) => e.key === 'Enter' && joinGame()} />
+                        <input type="text" value={joinPlayerName} onChange={(e) => setJoinPlayerName(e.target.value)} placeholder="Player Name" onKeyPress={(e) => e.key === 'Enter' && authenticated && joinGame()} disabled={authenticated} />
                     </label>
 
                     <div className="avatar-selector">
@@ -41,7 +49,11 @@ const JoinGame = ({ joinCode, setJoinCode, joinPlayerName, setJoinPlayerName, pl
                         </div>
                     </div>
 
-                    <button className="btn-primary" onClick={joinGame}>Join Now</button>
+                    {!authenticated ? (
+                        <button className="btn-primary" onClick={login}>Log in to Join</button>
+                    ) : (
+                        <button className="btn-primary" onClick={joinGame}>Join Now</button>
+                    )}
                     <button className="btn-secondary" onClick={() => setView('home')}>Back</button>
                 </div>
             </div>
