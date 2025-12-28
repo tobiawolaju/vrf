@@ -8,17 +8,10 @@ const JoinGame = ({ joinCode, setJoinCode, joinGame, setView, login, authenticat
             <div className="setup-screen">
                 <h1>🎲 Enter Game</h1>
                 <div className="join-form">
-                    {!joinCode && (
-                        <label>
-                            Game Code:
-                            <input type="text" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Enter Code" />
-                        </label>
-                    )}
-                    {joinCode && (
-                        <div className="code-display">
-                            Joining Game: <strong>{joinCode}</strong>
-                        </div>
-                    )}
+                    <label>
+                        Game Code:
+                        <input type="text" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Enter Code" />
+                    </label>
 
                     {!authenticated ? (
                         <button className="btn-primary" onClick={login}>Log in to Join</button>
