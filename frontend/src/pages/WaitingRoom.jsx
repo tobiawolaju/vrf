@@ -15,7 +15,13 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
                     <div className="avatar-row">
                         {gameState.players.map((p, idx) => (
                             <div key={idx} className="player-bubble" title={p.name}>
-                                <span className="bubble-avatar">{p.avatar || '👤'}</span>
+                                <div className="bubble-avatar">
+                                    {p.avatar && p.avatar.startsWith('http') ? (
+                                        <img src={p.avatar} alt={p.name} className="avatar-img" />
+                                    ) : (
+                                        <span>{p.avatar || '👤'}</span>
+                                    )}
+                                </div>
                                 <span className="bubble-name">{p.name}</span>
                             </div>
                         ))}

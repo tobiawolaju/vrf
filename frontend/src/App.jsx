@@ -148,7 +148,14 @@ function App() {
 
         // Derive player details from Privy user
         const playerName = user.twitter?.username || user.wallet?.address?.slice(0, 8) || user.email?.address?.split('@')[0] || 'Player';
-        const avatar = user.twitter?.profile_picture_url || user.google?.picture || user.github?.profile_picture_url || '😊';
+
+        // Find the first available profile picture from linked accounts
+        const privyAvatar = user.twitter?.profilePictureUrl ||
+            user.google?.profilePictureUrl ||
+            user.github?.profilePictureUrl ||
+            user.linkedAccounts?.find(acc => acc.profilePictureUrl)?.profilePictureUrl ||
+            '😊';
+        const avatar = privyAvatar;
 
         try {
             const res = await fetch(`${API_BASE}/join`, {
