@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@vercel/kv": "^3.0.0",
+        "@privy-io/react-auth": "^1.52.0",
         "cors": "^2.8.5",
         "express": "^5.2.1",
         "ioredis": "^5.8.2",
