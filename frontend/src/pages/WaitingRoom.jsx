@@ -19,8 +19,7 @@ const WaitingRoom = ({ gameState }) => {
                 </div>
 
                 <div className="countdown-timer big">
-                    <span className="label">Match starting in</span>
-                    <span className="time">{gameState.timeLeft}s</span>
+                    Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
                 </div>
 
                 <div className="info-box">
@@ -32,3 +31,14 @@ const WaitingRoom = ({ gameState }) => {
 };
 
 export default WaitingRoom;
+
+
+
+
+
+
+
+
+
+
+
