@@ -1,5 +1,6 @@
 import React from 'react';
 import PlayerBadge from '../components/PlayerBadge';
+import './WaitingRoom.css';
 
 const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
     const mins = Math.floor(waitTimeLeft / 60);
@@ -8,9 +9,8 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
     return (
         <div className="waiting-room-container">
             <div className="setup-screen">
-                <div className="countdown-timer big">
-                    Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
-                </div>
+                <h1>Game Lobby</h1>
+                <p className="game-code-display">Code: <strong>{gameState.id}</strong></p>
 
                 <div className="players-list">
                     <h3>Players Joined</h3>
@@ -21,10 +21,12 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
                     </div>
                 </div>
 
+                <div className="countdown-timer big">
+                    Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
+                </div>
 
                 <div className="info-box">
-                    <p>             <strong>{gameState.players.length} Nads </strong>
-                        waiting, Invite more people using code: <strong>{gameCode}</strong></p>
+                    <p>Invite friends using the code above!</p>
                 </div>
             </div>
         </div>
@@ -32,3 +34,34 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
 };
 
 export default WaitingRoom;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
