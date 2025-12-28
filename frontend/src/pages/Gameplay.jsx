@@ -65,11 +65,13 @@ const Gameplay = ({
                 <div className="die-area" onDragOver={handleDragOver} onDrop={handleDrop}>
                     {(gameState.phase === 'resolve' || isRolling) && (
                         <div className="die-display">
-                            <div className={`die-cube ${isRolling ? 'rolling' : ''}`}>
-                                {(() => {
-                                    const diceIcons = ['⚀', '⚁', '⚂'];
-                                    return diceIcons[visualRoll - 1] || visualRoll;
-                                })()}
+                            <div className={`die-cube ${isRolling ? 'rolling' : ''}`} data-roll={visualRoll}>
+                                <div className="face front">1</div>
+                                <div className="face back">6</div>
+                                <div className="face right">3</div>
+                                <div className="face left">4</div>
+                                <div className="face top">5</div>
+                                <div className="face bottom">2</div>
                             </div>
                         </div>
                     )}

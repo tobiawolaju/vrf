@@ -1,17 +1,17 @@
 .custom-dropdown {
     position: relative;
     width: 100%;
-    font-family: sans-serif;
+    font-family: var(--font-main);
 }
 
 .dropdown-selected {
-    padding: 12px;
-    border-radius: 8px;
-    background: #fff;
-    color: #ad56ff;
-    font-weight: bold;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface-color);
+    color: var(--text-primary);
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -19,27 +19,35 @@
 }
 
 .dropdown-selected:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--text-secondary);
+    background: var(--surface-hover);
+}
+
+.dropdown-selected.open {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .dropdown-arrow {
     font-size: 0.8rem;
     transition: transform 0.2s;
+    color: var(--text-secondary);
 }
 
 .dropdown-selected.open .dropdown-arrow {
     transform: rotate(180deg);
+    color: var(--primary-color);
 }
 
 .dropdown-menu {
     position: absolute;
-    top: 110%;
+    top: calc(100% + 8px);
     left: 0;
     width: 100%;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     z-index: 1000;
     animation: slideDown 0.2s ease-out forwards;
@@ -48,7 +56,7 @@
 @keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-8px);
     }
 
     to {
@@ -58,19 +66,25 @@
 }
 
 .dropdown-item {
-    padding: 12px;
-    color: #333;
+    padding: 12px 16px;
+    color: var(--text-secondary);
     cursor: pointer;
     font-weight: 500;
-    transition: background 0.1s;
+    transition: all 0.15s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
 }
 
 .dropdown-item:hover {
-    background: #f0f0f0;
-    color: #ad56ff;
+    background: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .dropdown-item.selected {
-    background: #ad56ff;
-    color: #fff;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
 }

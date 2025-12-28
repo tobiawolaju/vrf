@@ -1,4 +1,5 @@
 import Dropdown from '../components/Dropdown';
+import './Home.css';
 
 const Home = ({ startDelay, setStartDelay, createGame, setView }) => {
     const delayOptions = [
@@ -13,7 +14,7 @@ const Home = ({ startDelay, setStartDelay, createGame, setView }) => {
                 <h1>🎲 Last Die Standing</h1>
                 <div className="start-settings">
                     <label>
-                        Match Start Delay:
+                        Match Start Delay
                         <Dropdown
                             options={delayOptions}
                             value={startDelay}
@@ -22,8 +23,8 @@ const Home = ({ startDelay, setStartDelay, createGame, setView }) => {
                     </label>
                 </div>
                 <div className="home-buttons">
-                    <button className="btn-primary" onClick={createGame}>Create Match</button>
-                    <button className="btn-secondary" onClick={() => setView('join')}>Join Match</button>
+                    <button className="btn-primary" onClick={createGame}>Create New Match</button>
+                    <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
                 </div>
             </div>
         </div>

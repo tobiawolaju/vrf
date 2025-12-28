@@ -1,66 +1,144 @@
+/* WaitingRoom.css */
+.waiting-room-container {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-md);
+}
+
 .waiting-room-container .setup-screen {
-    padding: 20px;
+    background: rgba(18, 18, 18, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    width: 100%;
     max-width: 600px;
-    margin: 60px auto;
+    box-shadow: var(--shadow-lg), var(--shadow-neon);
     text-align: center;
+    animation: fadeIn 0.4s ease-out;
 }
 
 .waiting-room-container .countdown-timer.big {
-    font-size: 1.5rem;
-    margin: 20px 0;
-    padding: 20px;
-    background: #ad56ff;
-    color: #fff;
-    border-radius: 12px;
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg);
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    position: relative;
+    overflow: hidden;
+}
+
+.waiting-room-container .countdown-timer.big::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    animation: loadingBar 2s infinite linear;
 }
 
 .waiting-room-container .countdown-timer .time {
-    font-size: 2.5rem;
+    font-size: 3rem;
     display: block;
-    font-family: monospace;
-    margin-top: 10px;
+    font-family: var(--font-main);
+    font-weight: 700;
+    margin-top: var(--spacing-sm);
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .waiting-room-container .players-list {
-    margin: 30px 0;
+    margin: var(--spacing-xl) 0;
 }
 
 .waiting-room-container .avatar-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: var(--spacing-md);
     justify-content: center;
-    margin-top: 15px;
+    margin-top: var(--spacing-md);
 }
 
 .waiting-room-container .player-bubble {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: var(--spacing-xs);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .waiting-room-container .bubble-avatar {
-    font-size: 2.5rem;
-    background: white;
-    width: 60px;
-    height: 60px;
+    font-size: 2rem;
+    background: var(--surface-hover);
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.waiting-room-container .player-bubble:hover .bubble-avatar {
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
 }
 
 .waiting-room-container .bubble-name {
-    font-size: 0.9rem;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 2px 8px;
-    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .waiting-room-container .info-box {
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+}
+
+@keyframes loadingBar {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+    .waiting-room-container .setup-screen {
+        padding: 1.5rem;
+    }
+
+    .waiting-room-container .countdown-timer .time {
+        font-size: 2.5rem;
+    }
 }
