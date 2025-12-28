@@ -15,7 +15,6 @@ function App() {
     const [view, setView] = useState('home');
     const [gameCode, setGameCode] = useState('');
     const [playerId, setPlayerId] = useState('');
-    const [playerName, setPlayerName] = useState('');
     const [gameState, setGameState] = useState(null);
     const [timeLeft, setTimeLeft] = useState(0);
     const [resolveTimeLeft, setResolveTimeLeft] = useState(0);
@@ -23,9 +22,7 @@ function App() {
     const [serverSkew, setServerSkew] = useState(0);
     const [startDelay, setStartDelay] = useState(1); // Default 1 min
     const [joinCode, setJoinCode] = useState('');
-    const [joinPlayerName, setJoinPlayerName] = useState('');
     const [selectedCard, setSelectedCard] = useState(null);
-    const [playerAvatar, setPlayerAvatar] = useState('😊');
 
     // Animation states
     const [visualRoll, setVisualRoll] = useState(1);
@@ -124,6 +121,11 @@ function App() {
     }, [gameState?.phase, gameState?.lastRoll]);
 
     const createGame = async () => {
+        if (!authenticated) {
+            login();
+            return;
+        }
+
         try {
             const res = await fetch(`${API_BASE}/create`, {
                 method: 'POST',
@@ -139,27 +141,31 @@ function App() {
     };
 
     const joinGame = async () => {
-        if (!joinPlayerName.trim() && !authenticated) {
-            alert('Please enter your name or log in');
+        if (!authenticated) {
+            login();
             return;
         }
+
+        // Derive player details from Privy user
+        const playerName = user.twitter?.username || user.wallet?.address?.slice(0, 8) || user.email?.address?.split('@')[0] || 'Player';
+        const avatar = '😊'; // Default or derived if possible
+
         try {
             const res = await fetch(`${API_BASE}/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     gameCode: joinCode,
-                    playerName: joinPlayerName,
-                    avatar: playerAvatar,
-                    privyId: authenticated ? user.id : null,
-                    privyUser: authenticated ? user : null
+                    playerName: playerName,
+                    avatar: avatar,
+                    privyId: user.id,
+                    privyUser: user
                 })
             });
             const data = await res.json();
             if (data.success) {
                 setGameCode(joinCode);
                 setPlayerId(data.playerId);
-                setPlayerName(data.playerName);
                 setGameState(data.gameState);
                 setView('game');
             } else {
@@ -197,7 +203,7 @@ function App() {
 
     // RENDER ROUTING
     if (view === 'home') {
-        return <Home startDelay={startDelay} setStartDelay={setStartDelay} createGame={createGame} setView={setView} />;
+        return <Home startDelay={startDelay} setStartDelay={setStartDelay} createGame={createGame} setView={setView} login={login} authenticated={authenticated} />;
     }
 
     if (view === 'create') {
@@ -209,16 +215,10 @@ function App() {
             <JoinGame
                 joinCode={joinCode}
                 setJoinCode={setJoinCode}
-                joinPlayerName={joinPlayerName}
-                setJoinPlayerName={setJoinPlayerName}
-                playerAvatar={playerAvatar}
-                setPlayerAvatar={setPlayerAvatar}
                 joinGame={joinGame}
                 setView={setView}
-                // Auth props
                 login={login}
                 authenticated={authenticated}
-                user={user}
             />
         );
     }
