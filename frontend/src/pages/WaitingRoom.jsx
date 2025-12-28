@@ -10,7 +10,7 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
         <div className="waiting-room-container">
             <div className="setup-screen">
                 <h1>Game Lobby</h1>
-                <p className="game-code-display">Code: <strong>{gameState.id}</strong></p>
+                <p className="game-code-display">Code: <strong>{gameCode}</strong></p>
 
                 <div className="players-list">
                     <h3>Players Joined</h3>
