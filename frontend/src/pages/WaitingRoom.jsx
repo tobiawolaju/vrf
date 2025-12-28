@@ -3,9 +3,6 @@ import PlayerBadge from '../components/PlayerBadge';
 import './WaitingRoom.css';
 
 const WaitingRoom = ({ gameState }) => {
-    const mins = Math.floor(gameState.timeLeft / 60);
-    const secs = gameState.timeLeft % 60;
-
     return (
         <div className="waiting-room-container">
             <div className="setup-screen">
@@ -22,7 +19,8 @@ const WaitingRoom = ({ gameState }) => {
                 </div>
 
                 <div className="countdown-timer big">
-                    Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
+                    <span className="label">Match starting in</span>
+                    <span className="time">{gameState.timeLeft}s</span>
                 </div>
 
                 <div className="info-box">
@@ -34,14 +32,3 @@ const WaitingRoom = ({ gameState }) => {
 };
 
 export default WaitingRoom;
-
-
-
-
-
-
-
-
-
-
-
