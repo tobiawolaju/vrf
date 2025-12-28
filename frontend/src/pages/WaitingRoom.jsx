@@ -3,6 +3,9 @@ import PlayerBadge from '../components/PlayerBadge';
 import './WaitingRoom.css';
 
 const WaitingRoom = ({ gameState }) => {
+    const mins = Math.floor(gameState.timeLeft / 60);
+    const secs = gameState.timeLeft % 60;
+
     return (
         <div className="waiting-room-container">
             <div className="setup-screen">
