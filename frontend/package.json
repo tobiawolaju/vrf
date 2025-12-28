@@ -9,13 +9,21 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@vercel/kv": "^3.0.0",
+        "@headlessui/react": "^2.2.9",
+        "@heroicons/react": "^2.2.0",
+        "@privy-io/js-sdk-core": "^0.58.5",
         "@privy-io/react-auth": "^1.52.0",
+        "@privy-io/routes": "^0.0.4",
+        "@vercel/kv": "^3.0.0",
         "cors": "^2.8.5",
         "express": "^5.2.1",
         "ioredis": "^5.8.2",
+        "lucide-react": "^0.562.0",
+        "qrcode": "^1.5.4",
         "react": "^18.2.0",
-        "react-dom": "^18.2.0"
+        "react-dom": "^18.2.0",
+        "styled-components": "^6.1.19",
+        "viem": "^2.43.3"
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^4.2.1",
