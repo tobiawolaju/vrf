@@ -1,0 +1,40 @@
+.avatar-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.avatar-container.small {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+}
+
+.avatar-container.medium {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+}
+
+.avatar-container.large {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

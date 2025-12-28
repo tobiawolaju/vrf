@@ -1,0 +1,74 @@
+.top-center-info {
+    position: absolute;
+    top: var(--spacing-lg);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-align: center;
+    width: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.round-badge {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+}
+
+.timer-text {
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.outcome-text {
+    font-size: 3rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.outcome-text.win {
+    color: var(--success-color);
+}
+
+.outcome-text.loss {
+    color: var(--danger-color);
+}
+
+.outcome-text.skip {
+    color: var(--text-secondary);
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .top-center-info {
+        top: var(--spacing-sm);
+    }
+
+    .outcome-text {
+        font-size: 2rem;
+    }
+}

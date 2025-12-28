@@ -1,0 +1,72 @@
+.scoreboard-corner {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    background: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(12px);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: 220px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+}
+
+.scoreboard-corner h3 {
+    font-size: 1rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.score-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.score-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 8px;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.score-item.me {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.score-item .rank {
+    width: 24px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.score-item .name {
+    flex: 1;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.score-item .credits {
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .scoreboard-corner {
+        top: auto;
+        left: var(--spacing-md);
+        width: auto;
+        padding: var(--spacing-sm);
+        padding-top: calc(10px + var(--spacing-sm));
+        transform-origin: bottom left;
+        transform: scale(0.8);
+    }
+}

@@ -1,4 +1,5 @@
 import Dropdown from '../components/Dropdown';
+import SetupCard from '../components/SetupCard';
 import './Home.css';
 
 const Home = ({ startDelay, setStartDelay, createGame, setView, login, authenticated }) => {
@@ -9,35 +10,31 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, authentic
     ];
 
     return (
-        <div className="home-container">
-            <div className="setup-screen">
-                <h1>🎲 Last Die Standing</h1>
-
-                {!authenticated ? (
-                    <div className="home-buttons">
-                        <p className="login-prompt">Please log in to play</p>
-                        <button className="btn-primary" onClick={login}>Log In / Sign Up</button>
+        <SetupCard title="🎲 Last Die Standing">
+            {!authenticated ? (
+                <div className="home-buttons">
+                    <p className="login-prompt">Please log in to play</p>
+                    <button className="btn-primary" onClick={login}>Log In / Sign Up</button>
+                </div>
+            ) : (
+                <>
+                    <div className="home-settings">
+                        <label>
+                            Match Start Delay
+                            <Dropdown
+                                options={delayOptions}
+                                value={startDelay}
+                                onChange={(val) => setStartDelay(val)}
+                            />
+                        </label>
                     </div>
-                ) : (
-                    <>
-                        <div className="start-settings">
-                            <label>
-                                Match Start Delay
-                                <Dropdown
-                                    options={delayOptions}
-                                    value={startDelay}
-                                    onChange={(val) => setStartDelay(val)}
-                                />
-                            </label>
-                        </div>
-                        <div className="home-buttons">
-                            <button className="btn-primary" onClick={createGame}>Create New Match</button>
-                            <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
+                    <div className="home-buttons">
+                        <button className="btn-primary" onClick={createGame}>Create New Match</button>
+                        <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
+                    </div>
+                </>
+            )}
+        </SetupCard>
     );
 };
 

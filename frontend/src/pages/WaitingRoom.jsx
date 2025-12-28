@@ -1,35 +1,30 @@
 import React from 'react';
+import PlayerBadge from '../components/PlayerBadge';
 import './WaitingRoom.css';
 
-const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
-    const mins = Math.floor(waitTimeLeft / 60);
-    const secs = waitTimeLeft % 60;
-
+const WaitingRoom = ({ gameState }) => {
     return (
         <div className="waiting-room-container">
             <div className="setup-screen">
-                <div className="countdown-timer big">
-                    Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
-                </div>
+                <h1>Game Lobby</h1>
+                <p className="game-code-display">Code: <strong>{gameState.id}</strong></p>
+
                 <div className="players-list">
+                    <h3>Players Joined</h3>
                     <div className="avatar-row">
                         {gameState.players.map((p, idx) => (
-                            <div key={idx} className="player-bubble" title={p.name}>
-                                <div className="bubble-avatar">
-                                    {p.avatar && p.avatar.startsWith('http') ? (
-                                        <img src={p.avatar} alt={p.name} className="avatar-img" />
-                                    ) : (
-                                        <span>{p.avatar || '👤'}</span>
-                                    )}
-                                </div>
-                                <span className="bubble-name">{p.name}</span>
-                            </div>
+                            <PlayerBadge key={p.id || idx} player={p} />
                         ))}
                     </div>
                 </div>
+
+                <div className="countdown-timer big">
+                    <span className="label">Match starting in</span>
+                    <span className="time">{gameState.timeLeft}s</span>
+                </div>
+
                 <div className="info-box">
-                    <p>             <strong>{gameState.players.length} Nads </strong>
-                        waiting, Invite more people using code: <strong>{gameCode}</strong></p>
+                    <p>Invite friends using the code above!</p>
                 </div>
             </div>
         </div>
