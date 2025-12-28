@@ -34,11 +34,11 @@ const Gameplay = ({
                                 {player.avatar && player.avatar.startsWith('http') ? (
                                     <img src={player.avatar} alt={player.name} className="avatar-img" />
                                 ) : (
-                                    <span>{player.avatar || '👤'}</span>
+                                    <span>{player.avatar || '...'}</span>
                                 )}
                             </div>
                             <span className="name">{player.name}</span>
-                            <span className="credits">💰 {player.credits}</span>
+                            <strong className="credits"> {player.credits}</strong>
                         </div>
                     ))}
             </div>

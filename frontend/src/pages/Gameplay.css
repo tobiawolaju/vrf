@@ -368,11 +368,10 @@
 @media (max-width: 768px) {
     .gameplay-container .scoreboard-corner {
         top: auto;
-        bottom: calc(35vh + 20px);
-        /* Above hand */
+        /* bottom: calc(35vh + 20px);
+         Above hand */
         left: var(--spacing-md);
-        min-width: unset;
-        width: 160px;
+        width: auto;
         padding: var(--spacing-sm);
         transform-origin: bottom left;
         transform: scale(0.8);
