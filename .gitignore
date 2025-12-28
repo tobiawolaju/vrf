@@ -1,0 +1,12 @@
+# Logic
+node_modules
+.DS_Store
+.env
+
+# Frontend artifacts
+frontend/dist
+frontend/.env
+frontend/node_modules
+
+# Misc
+*.log
