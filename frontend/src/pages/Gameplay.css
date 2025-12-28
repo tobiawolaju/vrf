@@ -123,21 +123,7 @@
 }
 
 .die-cube {
-    Redis – VercelSkip to content got sidot's projects
- got sidot's projects
-
-    Hobby Find… F My Integrations Redis Installation Redis Serverless Redis Installed Products redis-blue-island Redis - Redis/30 MB More Products Redis Serverless Redis Plans starting at $0 Overview Redis is the world’s fastest data platform that lets you build faster apps fast. By letting you quickly deploy and integrate faster vector databases,
-    caches,
-    feature stores,
-    and other GenAI infrastructure,
-    apps built on Redis Cloud are delivering better real-time app experiences all at sub-millisecond speeds. When paired with Vercel,
-    Redis lets you create fast,
-    dynamic apps that can scale effortlessly. Whether you're building AI agents, chatbots, personalization engines, or predictive analytics, Redis ensures your data is always accessible and lightning fast.
-
-    Instructions This integration will allow you to connect a new Redis database to your Vercel project(s). After you have successfully linked a Redis database to your Vercel project(s),
-    you are ready to connect. Find the connection string for your Redis database in the environment variable [.env.local] on your database settings page. Check out https: //redis.io/docs/latest/operate/rc/cloud-integrations/vercel/ to get started.
-
-        Details Installed products 1 Developer Redis Inc. Website redis.io/cloud Documentation Read EULA Read Privacy Policy Read Support Open in Redis Home Docs Knowledge Base Academy Help Contact Loading status… Select a display theme: system light dark scale: 0.7;
+    scale: 0.7;
     width: 100px;
     height: 100px;
     position: relative;
