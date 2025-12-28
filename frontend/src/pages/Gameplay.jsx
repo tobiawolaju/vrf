@@ -31,7 +31,11 @@ const Gameplay = ({
                         <div key={player.id} className={`score-item ${player.isMe ? 'me' : ''}`}>
                             <span className="rank">#{idx + 1}</span>
                             <div className="player-avatar-small">
-                                <span>{player.avatar || '👤'}</span>
+                                {player.avatar && player.avatar.startsWith('http') ? (
+                                    <img src={player.avatar} alt={player.name} className="avatar-img" />
+                                ) : (
+                                    <span>{player.avatar || '👤'}</span>
+                                )}
                             </div>
                             <span className="name">{player.name}</span>
                             <span className="credits">💰 {player.credits}</span>

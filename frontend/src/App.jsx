@@ -148,7 +148,7 @@ function App() {
 
         // Derive player details from Privy user
         const playerName = user.twitter?.username || user.wallet?.address?.slice(0, 8) || user.email?.address?.split('@')[0] || 'Player';
-        const avatar = '😊'; // Default or derived if possible
+        const avatar = user.twitter?.profile_picture_url || user.google?.picture || user.github?.profile_picture_url || '😊';
 
         try {
             const res = await fetch(`${API_BASE}/join`, {
