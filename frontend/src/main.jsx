@@ -2,9 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './App.css'
+import PrivyWrapper from './components/PrivyWrapper.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <App />
+        <PrivyWrapper>
+            <App />
+        </PrivyWrapper>
     </React.StrictMode>,
 )
