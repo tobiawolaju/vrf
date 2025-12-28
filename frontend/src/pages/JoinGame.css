@@ -1,0 +1,63 @@
+.join-game-container .setup-screen {
+    padding: 20px;
+    max-width: 600px;
+    margin: 60px auto;
+    text-align: center;
+}
+
+.join-game-container .join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 400px;
+    margin: 0 auto;
+    background: #ad56ff;
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.join-game-container .join-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+}
+
+.join-game-container .code-display {
+    text-align: left;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.join-game-container .avatar-selector {
+    margin-top: 8px;
+}
+
+.join-game-container .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.join-game-container .emoji-option {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.join-game-container .emoji-option:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+.join-game-container .emoji-option.selected {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}

@@ -1,0 +1,14 @@
+{
+  "name": "last-die-standing-backend",
+  "version": "1.0.0",
+  "description": "Backend server for Last Die Standing game with VRF mock",
+  "main": "dice.js",
+  "type": "module",
+  "scripts": {
+    "start": "node dice.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

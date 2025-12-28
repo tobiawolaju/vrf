@@ -1,0 +1,66 @@
+.waiting-room-container .setup-screen {
+    padding: 20px;
+    max-width: 600px;
+    margin: 60px auto;
+    text-align: center;
+}
+
+.waiting-room-container .countdown-timer.big {
+    font-size: 1.5rem;
+    margin: 20px 0;
+    padding: 20px;
+    background: #ad56ff;
+    color: #fff;
+    border-radius: 12px;
+}
+
+.waiting-room-container .countdown-timer .time {
+    font-size: 2.5rem;
+    display: block;
+    font-family: monospace;
+    margin-top: 10px;
+}
+
+.waiting-room-container .players-list {
+    margin: 30px 0;
+}
+
+.waiting-room-container .avatar-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.waiting-room-container .player-bubble {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.waiting-room-container .bubble-avatar {
+    font-size: 2.5rem;
+    background: white;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.waiting-room-container .bubble-name {
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.waiting-room-container .info-box {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 8px;
+}
