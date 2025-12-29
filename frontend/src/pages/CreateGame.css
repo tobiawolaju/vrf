@@ -23,6 +23,12 @@
     font-weight: 500;
 }
 
+.create-game-card .join-game-card .join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
 .create-game-card .single-link-container {
     display: flex;
     gap: var(--spacing-sm);
@@ -66,11 +72,13 @@
 
 .create-game-card .host-actions {
     display: flex;
+    flex-direction: column;
+    gap: 20px;
     justify-content: center;
 }
 
 .create-game-card .host-actions button {
     width: 100%;
-    padding: 16px;
-    font-size: 1.1rem;
+    padding: 12px;
+    font-size: 1rem;
 }
