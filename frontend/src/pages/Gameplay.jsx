@@ -23,8 +23,10 @@ const Gameplay = ({
 
     return (
         <div className="gameplay-container">
+
             <div className="vote-tracker-corner">
                 {gameState.players.filter(p => p.hasCommitted).length}/{gameState.players.length} voted
+
             </div>
 
             <Scoreboard players={gameState.players} />

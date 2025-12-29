@@ -1,8 +1,72 @@
 import Dropdown from '../components/Dropdown';
 import SetupCard from '../components/SetupCard';
+import { useWallets } from '@privy-io/react-auth';
+import { createWalletClient, custom } from 'viem';
+import { mainnet } from 'viem/chains'; // Using mainnet as base, we'll override RPC if needed
 import './Home.css';
 
+// Minimal ABI for SimpleCounter
+const CONTRACT_ABI = [
+    {
+        "inputs": [],
+        "name": "increment",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "count",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+// Placeholder - User needs to update after deployment
+const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
 const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, authenticated, user }) => {
+    const { wallets } = useWallets();
+
+    const handleIncrement = async () => {
+        try {
+            const wallet = wallets.find((w) => w.walletClientType === 'privy');
+            if (!wallet) {
+                alert("No Privy wallet found. Please ensure you are logged in with an embedded wallet.");
+                return;
+            }
+
+            // Switch to Monad Mainnet if necessary (Privy handles this if configured)
+            // await wallet.switchChain(10143); // Example if using testnet, but user wants mainnet
+
+            const provider = await wallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                account: wallet.address,
+                chain: mainnet, // Placeholder chain, actual network handled by provider
+                transport: custom(provider)
+            });
+
+            console.log("Requesting increment transaction...");
+            const hash = await walletClient.writeContract({
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
+                functionName: 'increment',
+            });
+
+            console.log("Transaction hash:", hash);
+            alert(`Transaction sent! Hash: ${hash}`);
+        } catch (error) {
+            console.error("Contract interaction failed:", error);
+            alert(`Error: ${error.message}`);
+        }
+    };
     const delayOptions = [
         { value: 1, label: '1 Minute' },
         { value: 30, label: '30 Minutes' },
@@ -69,6 +133,22 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                     <div className="home-buttons">
                         <button className="btn-primary" onClick={createGame}>Create New Match</button>
                         <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
+                        <div className="divider" style={{
+                            height: '1px',
+                            background: 'rgba(255,255,255,0.1)',
+                            margin: '10px 0'
+                        }} />
+                        <button
+                            className="btn-accent"
+                            style={{
+                                background: 'var(--accent-color)',
+                                color: 'black',
+                                boxShadow: '0 4px 0 #b08d00'
+                            }}
+                            onClick={handleIncrement}
+                        >
+                            Test Contract Increment
+                        </button>
                     </div>
                 </>
             )}

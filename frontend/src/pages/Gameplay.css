@@ -28,6 +28,11 @@
     gap: 8px;
 }
 
+.vote-tracker-corner {
+    position: fixed;
+    bottom: 0px;
+}
+
 .vote-tracker-corner strong {
     color: var(--accent-color);
     font-size: 1.3rem;
