@@ -59,9 +59,6 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  background-image:
-    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 20%),
-    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
 }
 
 .loading {

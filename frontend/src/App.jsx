@@ -7,6 +7,7 @@ import CreateGame from './pages/CreateGame';
 import JoinGame from './pages/JoinGame';
 import WaitingRoom from './pages/WaitingRoom';
 import Gameplay from './pages/Gameplay';
+import BalatroBackground from './components/BalatroBackground';
 
 const API_BASE = '/api';
 
@@ -209,63 +210,67 @@ function App() {
     };
 
     // RENDER ROUTING
-    if (view === 'home') {
+    const renderContent = () => {
+        if (view === 'home') {
+            return (
+                <Home
+                    startDelay={startDelay}
+                    setStartDelay={setStartDelay}
+                    createGame={createGame}
+                    setView={setView}
+                    login={login}
+                    logout={logout}
+                    authenticated={authenticated}
+                    user={user}
+                />
+            );
+        }
+
+        if (view === 'create') {
+            return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={setView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
+        }
+
+        if (view === 'join') {
+            return (
+                <JoinGame
+                    joinCode={joinCode}
+                    setJoinCode={setJoinCode}
+                    joinGame={joinGame}
+                    setView={setView}
+                    login={login}
+                    authenticated={authenticated}
+                />
+            );
+        }
+
+        if (!gameState) return <div className="loading">Connecting...</div>;
+
+        if (gameState.phase === 'waiting') {
+            return <WaitingRoom gameState={gameState} waitTimeLeft={waitTimeLeft} gameCode={gameCode} />;
+        }
+
         return (
-            <Home
-                startDelay={startDelay}
-                setStartDelay={setStartDelay}
-                createGame={createGame}
-                setView={setView}
-                login={login}
-                logout={logout}
-                authenticated={authenticated}
-                user={user}
+            <Gameplay
+                gameState={gameState}
+                currentPlayer={gameState.currentPlayer}
+                timeLeft={timeLeft}
+                resolveTimeLeft={resolveTimeLeft}
+                isRolling={isRolling}
+                visualRoll={visualRoll}
+                selectedCard={selectedCard}
+                handleCardClick={handleCardClick}
+                handleSkip={handleSkip}
+                handleDragOver={handleDragOver}
+                handleDrop={handleDrop}
             />
         );
-    }
+    };
 
-    if (view === 'create') {
-        return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={setView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
-    }
-
-    if (view === 'join') {
-        return (
-            <JoinGame
-                joinCode={joinCode}
-                setJoinCode={setJoinCode}
-                joinGame={joinGame}
-                setView={setView}
-                login={login}
-                authenticated={authenticated}
-            />
-        );
-    }
-
-    // GAME VIEW
-    if (!gameState) return <div className="app"><div className="loading">Connecting...</div></div>;
-
-    const currentPlayer = gameState.currentPlayer;
-
-    // WAITING ROOM
-    if (gameState.phase === 'waiting') {
-        return <WaitingRoom gameState={gameState} waitTimeLeft={waitTimeLeft} gameCode={gameCode} />;
-    }
-
-    // MAIN GAMEPLAY
     return (
-        <Gameplay
-            gameState={gameState}
-            currentPlayer={currentPlayer}
-            timeLeft={timeLeft}
-            resolveTimeLeft={resolveTimeLeft}
-            isRolling={isRolling}
-            visualRoll={visualRoll}
-            selectedCard={selectedCard}
-            handleCardClick={handleCardClick}
-            handleSkip={handleSkip}
-            handleDragOver={handleDragOver}
-            handleDrop={handleDrop}
-        />
+        <div className="app">
+            <BalatroBackground />
+            {renderContent()}
+        </div>
     );
 }
 
