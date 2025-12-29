@@ -3,12 +3,16 @@
     font-size: 1.5rem;
     margin: var(--spacing-md) 0;
     padding: var(--spacing-md);
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px dashed rgba(99, 102, 241, 0.3);
+    background: rgba(117, 30, 168, 0.1);
+    border: 2px dashed var(--primary-color);
     border-radius: var(--radius-md);
-    color: var(--primary-color);
+    color: var(--text-primary);
     letter-spacing: 1px;
     text-align: center;
+}
+
+.create-game-card .game-code strong {
+    color: var(--accent-color);
 }
 
 .create-game-card .join-links {
@@ -17,25 +21,19 @@
 }
 
 .create-game-card .join-links h3 {
-    font-size: 1rem;
+    font-family: var(--font-game);
+    font-size: 1.1rem;
     margin-bottom: var(--spacing-sm);
     color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.create-game-card .join-game-card .join-form {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
 }
 
 .create-game-card .single-link-container {
     display: flex;
-    gap: var(--spacing-sm);
+    gap: 12px;
 }
 
 .create-game-card .single-link-container input {
-    background: var(--surface-color);
+    background: rgba(0, 0, 0, 0.3);
     color: var(--text-secondary);
     border-color: var(--border-color);
     flex: 1;
@@ -43,30 +41,32 @@
 
 .create-game-card .btn-copy {
     white-space: nowrap;
-    background: var(--surface-hover);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    padding: 10px 20px;
+    background: var(--primary-color);
+    color: white;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 0 var(--primary-shadow);
 }
 
 .create-game-card .btn-copy:hover {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #fff;
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--primary-shadow);
 }
 
 .create-game-card .info-box {
-    background: rgba(255, 255, 255, 0.05);
-    padding: var(--spacing-md);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1.5rem;
     border-radius: var(--radius-md);
     margin-bottom: var(--spacing-lg);
     text-align: left;
-    border-left: 3px solid var(--accent-color);
+    border-left: 4px solid var(--accent-color);
 }
 
 .create-game-card .info-box p {
-    margin: var(--spacing-xs) 0;
-    font-size: 0.95rem;
+    margin: 8px 0;
+    font-size: 1rem;
+    font-weight: 600;
     color: var(--text-secondary);
 }
 
@@ -79,6 +79,6 @@
 
 .create-game-card .host-actions button {
     width: 100%;
-    padding: 12px;
-    font-size: 1rem;
+    padding: 14px;
+    font-size: 1.1rem;
 }
