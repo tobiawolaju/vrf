@@ -1,10 +1,22 @@
 import { PrivyProvider } from '@privy-io/react-auth';
+import { WagmiProvider, createConfig } from '@privy-io/wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http } from 'wagmi';
 import { monadChain } from '../utils/chains';
 import { mainnet } from 'viem/chains';
 
-// In a production environment, this should be in process.env.VITE_PRIVY_APP_ID
-// But for immediate ease of use given file access restrictions, we use the ID provided.
 const PRIVY_APP_ID = 'cmdmvsh7k0184jl0imavr5w91';
+
+// Configure wagmi
+const wagmiConfig = createConfig({
+    chains: [monadChain, mainnet],
+    transports: {
+        [monadChain.id]: http(monadChain.rpcUrls.default.http[0]),
+        [mainnet.id]: http(),
+    },
+});
+
+const queryClient = new QueryClient();
 
 export default function PrivyWrapper({ children }) {
     return (
@@ -12,10 +24,10 @@ export default function PrivyWrapper({ children }) {
             appId={PRIVY_APP_ID}
             config={{
                 supportedChains: [monadChain, mainnet],
+                defaultChain: monadChain,
                 loginMethods: ['twitter'],
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',
-                    noPromptOnSignature: true, // Avoids the "connecting" popup
                 },
                 appearance: {
                     theme: 'dark',
@@ -24,7 +36,11 @@ export default function PrivyWrapper({ children }) {
                 },
             }}
         >
-            {children}
+            <QueryClientProvider client={queryClient}>
+                <WagmiProvider config={wagmiConfig}>
+                    {children}
+                </WagmiProvider>
+            </QueryClientProvider>
         </PrivyProvider>
     );
 }
