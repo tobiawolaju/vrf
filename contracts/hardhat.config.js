@@ -1,15 +1,15 @@
-import "@nomicfoundation/hardhat-ethers";
-import * as dotenv from "dotenv";
-dotenv.config();
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
-const { PRIVATE_KEY, MONAD_MAINNET_RPC_URL } = process.env;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MONAD_MAINNET_RPC = process.env.MONAD_MAINNET_RPC_URL;
 
 /** @type import('hardhat/config').HardhatUserConfig */
-export default {
+module.exports = {
     solidity: "0.8.19",
     networks: {
         monadMainnet: {
-            url: MONAD_MAINNET_RPC_URL || "https://rpc-mainnet.monadinfra.com",
+            url: MONAD_MAINNET_RPC || "",
             accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
         },
     },

@@ -9,11 +9,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^3.0.0",
-    "dotenv": "^16.0.0",
-    "ethers": "^6.0.0",
-    "hardhat": "^2.0.0"
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0"
   }
 }

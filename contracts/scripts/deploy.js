@@ -1,14 +1,16 @@
-import hre from "hardhat";
+const hre = require("hardhat");
+const fs = require("fs");
 
 async function main() {
-    console.log("Deploying SimpleCounter...");
-
     const SimpleCounter = await hre.ethers.getContractFactory("SimpleCounter");
-    const counter = await SimpleCounter.deploy();
 
-    await counter.waitForDeployment();
+    console.log("Deploying SimpleCounter...");
+    const simpleCounter = await SimpleCounter.deploy();
 
-    console.log("SimpleCounter deployed to:", await counter.getAddress());
+    await simpleCounter.waitForDeployment();
+
+    console.log(`SimpleCounter deployed to ${simpleCounter.target}`);
+    fs.writeFileSync("address.txt", simpleCounter.target);
 }
 
 main().catch((error) => {
