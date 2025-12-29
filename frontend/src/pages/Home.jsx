@@ -1,9 +1,9 @@
 import Dropdown from '../components/Dropdown';
 import SetupCard from '../components/SetupCard';
 import { useWallets } from '@privy-io/react-auth';
-import { createWalletClient, custom } from 'viem';
-import { mainnet } from 'viem/chains'; // Using mainnet as base, we'll override RPC if needed
+import { encodeFunctionData } from 'viem';
 import './Home.css';
+import { monadChain } from '../utils/chains';
 
 // Minimal ABI for SimpleCounter
 const CONTRACT_ABI = [
@@ -30,34 +30,63 @@ const CONTRACT_ABI = [
 ];
 
 // Placeholder - User needs to update after deployment
-const CONTRACT_ADDRESS = "0x4d2B7a429734348e0010d5cFB5B71D5cA99b86Ca";
+const CONTRACT_ADDRESS = "0xaa3F5Cf26403F0EF88ef7fF34Bb015ab76783E86";
+
+// Define Monad Chain (Imported from utils/chains)
 
 const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, authenticated, user }) => {
     const { wallets } = useWallets();
 
     const handleIncrement = async () => {
         try {
-            const wallet = wallets.find((w) => w.walletClientType === 'privy');
+            // Find the correct wallet to use
+            const wallet = wallets.find((w) => w.walletClientType === 'privy') || wallets.find(w => w.chainType === 'ethereum');
             if (!wallet) {
-                alert("No Privy wallet found. Please ensure you are logged in with an embedded wallet.");
+                alert("No compatible wallet found. Please login.");
                 return;
             }
 
-            // Switch to Monad Mainnet if necessary (Privy handles this if configured)
-            // await wallet.switchChain(10143); // Example if using testnet, but user wants mainnet
+            // Attempt to Switch to Monad Chain, adding it if necessary
+            try {
+                await wallet.switchChain(monadChain.id);
+            } catch (switchError) {
+                console.warn("Retrying chain switch via provider (forcing add)...", switchError);
+                try {
+                    const provider = await wallet.getEthereumProvider();
+                    await provider.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: `0x${monadChain.id.toString(16)}`,
+                            chainName: monadChain.name,
+                            nativeCurrency: monadChain.nativeCurrency,
+                            rpcUrls: [monadChain.rpcUrls.default.http[0]],
+                        }],
+                    });
+                    // Try switching again after adding
+                    await wallet.switchChain(monadChain.id);
+                } catch (addError) {
+                    console.error("Failed to add/switch chain:", addError);
+                    alert("Could not switch to Monad network. Please switch manually in your wallet.");
+                    return; // Stop execution if we can't switch
+                }
+            }
 
             const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: wallet.address,
-                chain: mainnet, // Placeholder chain, actual network handled by provider
-                transport: custom(provider)
-            });
 
-            console.log("Requesting increment transaction...");
-            const hash = await walletClient.writeContract({
-                address: CONTRACT_ADDRESS,
+            // Encode the function call data for 'increment()'
+            const data = encodeFunctionData({
                 abi: CONTRACT_ABI,
                 functionName: 'increment',
+            });
+
+            console.log("Requesting increment transaction via eth_sendTransaction...");
+            const hash = await provider.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                    from: wallet.address,
+                    to: CONTRACT_ADDRESS,
+                    data: data,
+                }]
             });
 
             console.log("Transaction hash:", hash);
