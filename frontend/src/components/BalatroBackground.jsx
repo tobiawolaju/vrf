@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import BalatroShader from '../lib/balatroShader';
 
 const BalatroBackground = ({
-    colors = { c1: "#DE443B", c2: "#006BB4", c3: "#162325" },
+    colors = { c1: "#751ea8", c2: "#5917b1", c3: "#008111ff" },
     speed = 1.0,
     contrast = 2.0,
     spinAmount = 0.5,

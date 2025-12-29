@@ -4,7 +4,7 @@
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    background: radial-gradient(circle at center, #aaaeff 0%, #118b63 100%);
+    background: radial-gradient(circle at center, #751ea8 0%, #5917b1 100%);
     color: var(--text-primary);
 }
 
