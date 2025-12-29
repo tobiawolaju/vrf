@@ -4,56 +4,66 @@
     justify-content: center;
     align-items: center;
     padding: var(--spacing-md);
+    perspective: 1000px;
 }
 
 .setup-card {
-    background: rgba(18, 18, 18, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-color);
+    backdrop-filter: blur(15px);
+    border: 3px solid var(--border-color);
     padding: 3rem;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg), var(--shadow-neon);
+    box-shadow: var(--shadow-card), var(--shadow-neon);
     width: 100%;
     max-width: 500px;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
-    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: gameEnter 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+    position: relative;
+    overflow: hidden;
+}
+
+.setup-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .setup-card h1 {
-    font-size: 3rem;
+    font-size: 2.8rem;
     text-align: center;
     margin-bottom: var(--spacing-md);
-    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    color: var(--text-primary);
+    -webkit-text-fill-color: var(--text-primary);
+    filter: drop-shadow(0 4px 0 var(--primary-shadow));
 }
 
-@keyframes slideUp {
+@keyframes gameEnter {
     from {
         opacity: 0;
-        transform: translateY(40px);
+        transform: translateY(60px) rotateX(-10deg);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) rotateX(0);
     }
 }
 
 @media (max-width: 600px) {
     .setup-card {
         padding: 2rem;
-        height: auto;
-        border: none;
-        background: transparent;
-        box-shadow: none;
+        max-width: 95%;
+        border-width: 2px;
     }
 
     .setup-card h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
     }
 }

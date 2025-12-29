@@ -2,30 +2,38 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: 10px;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.2s;
+}
+
+.player-badge:hover {
+    transform: scale(1.1);
 }
 
 .player-badge .badge-avatar {
-    background: var(--surface-hover);
-    box-shadow: var(--shadow-md);
-    border: 2px solid transparent;
+    background: linear-gradient(135deg, var(--primary-color), var(--success-color));
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    border: 2px solid white;
     transition: all 0.2s;
+    border-radius: 12px;
 }
 
 .player-badge:hover .badge-avatar {
-    transform: translateY(-5px);
-    border-color: var(--primary-color);
+    box-shadow: 0 0 15px var(--accent-color);
+    border-color: var(--accent-color);
 }
 
 .badge-name {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-    max-width: 80px;
+    font-family: var(--font-game);
+    font-size: 1rem;
+    color: var(--text-primary);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    letter-spacing: 0.5px;
 }
 
 @keyframes popIn {

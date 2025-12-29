@@ -5,31 +5,57 @@
     justify-content: center;
     align-items: center;
     padding: var(--spacing-md);
+    perspective: 1000px;
 }
 
 .waiting-room-container .setup-screen {
-    background: rgba(18, 18, 18, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-color);
+    backdrop-filter: blur(15px);
+    border: 3px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 2.5rem;
+    padding: 3rem;
     width: 100%;
     max-width: 600px;
-    box-shadow: var(--shadow-lg), var(--shadow-neon);
+    box-shadow: var(--shadow-card), var(--shadow-neon);
     text-align: center;
-    animation: fadeIn 0.4s ease-out;
+    animation: gameEnter 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+    position: relative;
+    overflow: hidden;
+}
+
+.waiting-room-container h1 {
+    font-size: 3.5rem;
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 4px 0 var(--primary-shadow));
+}
+
+.game-code-display {
+    font-family: var(--font-game);
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    letter-spacing: 1px;
+}
+
+.game-code-display strong {
+    color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--primary-color);
 }
 
 .waiting-room-container .countdown-timer.big {
-    margin: var(--spacing-lg) 0;
-    padding: var(--spacing-lg);
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    margin: 2rem 0;
+    padding: 2rem;
+    background: rgba(117, 30, 168, 0.15);
+    border: 2px solid var(--primary-color);
     border-radius: var(--radius-lg);
     color: var(--text-primary);
     position: relative;
     overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(117, 30, 168, 0.2);
 }
 
 .waiting-room-container .countdown-timer.big::before {
@@ -37,72 +63,78 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-    animation: loadingBar 2s infinite linear;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--primary-color));
+    background-size: 200% 100%;
+    animation: flowBar 2s infinite linear;
+}
+
+.waiting-room-container .countdown-timer.big {
+    font-family: var(--font-game);
+    font-size: 1.4rem;
+    text-transform: uppercase;
 }
 
 .waiting-room-container .countdown-timer .time {
-    font-size: 3rem;
+    font-size: 4rem;
     display: block;
-    font-family: var(--font-main);
-    font-weight: 700;
-    margin-top: var(--spacing-sm);
-    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-family: var(--font-game);
+    margin-top: 10px;
+    color: var(--text-primary);
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 6px 0 var(--primary-shadow);
 }
 
-.waiting-room-container .players-list {
-    margin: var(--spacing-xl) 0;
-}
-
-.waiting-room-container .avatar-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-    justify-content: center;
-    margin-top: var(--spacing-md);
-}
-
-.waiting-room-container .info-box {
-    background: rgba(255, 255, 255, 0.05);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
+.waiting-room-container .players-list h3 {
+    font-family: var(--font-game);
+    margin-bottom: 1.5rem;
     color: var(--text-secondary);
 }
 
-@keyframes loadingBar {
+.waiting-room-container .info-box {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+@keyframes flowBar {
     0% {
-        transform: translateX(-100%);
+        background-position: 100% 0%;
     }
 
     100% {
-        transform: translateX(100%);
+        background-position: -100% 0%;
     }
 }
 
-@keyframes fadeIn {
+@keyframes gameEnter {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(60px) rotateX(-10deg);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) rotateX(0);
     }
 }
 
 /* Mobile Responsive */
 @media (max-width: 600px) {
     .waiting-room-container .setup-screen {
-        padding: 1.5rem;
+        padding: 2rem;
+        max-width: 95%;
     }
 
     .waiting-room-container .countdown-timer .time {
+        font-size: 3rem;
+    }
+
+    .waiting-room-container h1 {
         font-size: 2.5rem;
     }
 }

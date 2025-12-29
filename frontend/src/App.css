@@ -1,40 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Montserrat:wght@400;600;800&display=swap');
 
 :root {
-  /* Colors */
-  --bg-color: #050505;
-  --surface-color: #121212;
-  --surface-hover: #1e1e1e;
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --accent-color: #8b5cf6;
+  /* Colors - Aligned with Balatro purple/green theme */
+  --bg-color: #0d0216;
+  --surface-color: rgba(30, 10, 50, 0.6);
+  --surface-hover: rgba(50, 20, 80, 0.8);
+  --primary-color: #751ea8;
+  --primary-hover: #9b30d9;
+  --primary-shadow: #4d146d;
+  --success-color: #008111;
+  --success-hover: #00a816;
+  --success-shadow: #005a0c;
+  --accent-color: #fdcf00;
+  /* Gold for highlights */
   --text-primary: #ffffff;
-  --text-secondary: #a3a3a3;
-  --danger-color: #ef4444;
-  --success-color: #22c55e;
-  --border-color: #2a2a2a;
+  --text-secondary: #d1b3e6;
+  --danger-color: #ff3e3e;
+  --border-color: rgba(255, 255, 255, 0.15);
 
   /* Typography */
-  --font-main: 'Outfit', sans-serif;
-
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
+  --font-game: 'Luckiest Guy', cursive;
+  --font-ui: 'Montserrat', sans-serif;
 
   /* Radius */
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-neon: 0 0 15px rgba(99, 102, 241, 0.3);
+  --shadow-neon: 0 0 20px rgba(117, 30, 168, 0.4);
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -44,7 +40,7 @@
 }
 
 body {
-  font-family: var(--font-main);
+  font-family: var(--font-ui);
   background-color: var(--bg-color);
   color: var(--text-primary);
   min-height: 100vh;
@@ -66,31 +62,32 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--primary-color);
+  font-family: var(--font-game);
+  font-size: 2.5rem;
+  color: var(--accent-color);
+  text-shadow: 0 4px 0 var(--primary-shadow);
+  letter-spacing: 2px;
   animation: pulse 2s infinite;
 }
 
-/* Typography Utilities */
+/* Typography Overhaul */
 h1,
 h2,
-h3,
-h4,
-h5,
-h6 {
-  font-weight: 700;
-  line-height: 1.2;
+h3 {
+  font-family: var(--font-game);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
 }
 
 h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.02em;
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
 }
 
 h2 {
   font-size: 2rem;
-  letter-spacing: -0.01em;
 }
 
 h3 {
@@ -99,121 +96,118 @@ h3 {
 
 p {
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* Button Reset & Base Styles */
+/* 3D PRESSABLE BUTTONS */
 button {
   cursor: pointer;
   border: none;
-  font-family: var(--font-main);
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 12px 24px;
+  font-family: var(--font-game);
+  font-size: 1.2rem;
+  padding: 14px 28px;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   outline: none;
+  user-select: none;
 }
 
 button:active {
-  transform: scale(0.96);
+  transform: translateY(4px);
+  box-shadow: none !important;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
+  filter: grayscale(1);
 }
 
 .btn-primary {
   background: var(--primary-color);
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 6px 0 var(--primary-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--primary-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .btn-secondary {
-  background: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: var(--success-color);
+  color: white;
+  box-shadow: 0 6px 0 var(--success-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--text-secondary);
+  background: var(--success-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--success-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger-color);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--danger-color);
+  color: white;
+  box-shadow: 0 6px 0 #991b1b, 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-/* Layout Utilities */
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-md);
-}
-
-.flex-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.flex-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.gap-sm {
-  gap: var(--spacing-sm);
-}
-
-.gap-md {
-  gap: var(--spacing-md);
-}
-
-.gap-lg {
-  gap: var(--spacing-lg);
-}
-
-/* Glassmorphism Card */
+/* Glassmorphism Overhaul (Now "Card" Aesthetic) */
 .glass-card {
   background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  border: 3px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  backdrop-filter: blur(10px);
+  padding: 32px;
+  backdrop-filter: blur(15px);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 /* Animations */
 @keyframes pulse {
   0% {
-    opacity: 0.6;
+    transform: scale(1);
+    opacity: 0.8;
   }
 
   50% {
+    transform: scale(1.05);
     opacity: 1;
   }
 
   100% {
-    opacity: 0.6;
+    transform: scale(1);
+    opacity: 0.8;
   }
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
 
   to {
@@ -223,31 +217,33 @@ button:disabled {
 }
 
 .fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
-/* Inputs */
+/* Inputs Overhaul */
 input {
   width: 100%;
-  padding: 12px 16px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-family: var(--font-main);
-  font-size: 1rem;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 1.1rem;
   transition: all 0.2s;
   outline: none;
 }
 
 input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 15px rgba(117, 30, 168, 0.3);
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -255,25 +251,26 @@ input:focus {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-hover);
-  border-radius: 4px;
+  background: var(--primary-color);
+  border-radius: 10px;
+  border: 3px solid var(--bg-color);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--primary-hover);
 }
 
 /* Mobile Adjustments */
 @media (max-width: 768px) {
   h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
   }
 
   h2 {
-    font-size: 1.75rem;
+    font-size: 1.8rem;
   }
 
-  .container {
-    padding: 0 var(--spacing-sm);
+  .glass-card {
+    padding: 20px;
   }
 }

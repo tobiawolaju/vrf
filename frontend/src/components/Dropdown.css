@@ -1,62 +1,62 @@
 .custom-dropdown {
     position: relative;
     width: 100%;
-    font-family: var(--font-main);
+    font-family: var(--font-ui);
 }
 
 .dropdown-selected {
-    padding: 12px 16px;
+    padding: 14px 20px;
     border-radius: var(--radius-md);
-    background: var(--surface-color);
+    background: rgba(0, 0, 0, 0.4);
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: all 0.2s;
+    font-size: 1.1rem;
 }
 
 .dropdown-selected:hover {
-    border-color: var(--text-secondary);
-    background: var(--surface-hover);
+    border-color: var(--primary-color);
+    background: rgba(0, 0, 0, 0.6);
 }
 
 .dropdown-selected.open {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 15px rgba(117, 30, 168, 0.3);
 }
 
 .dropdown-arrow {
-    font-size: 0.8rem;
+    font-size: 1rem;
     transition: transform 0.2s;
-    color: var(--text-secondary);
+    color: var(--primary-color);
 }
 
 .dropdown-selected.open .dropdown-arrow {
     transform: rotate(180deg);
-    color: var(--primary-color);
 }
 
 .dropdown-menu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 10px);
     left: 0;
     width: 100%;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
+    background: #1a0a2a;
+    border: 2px solid var(--primary-color);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-card);
     overflow: hidden;
     z-index: 1000;
-    animation: slideDown 0.2s ease-out forwards;
+    animation: slideDown 0.3s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
 @keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(-10px);
     }
 
     to {
@@ -66,12 +66,12 @@
 }
 
 .dropdown-item {
-    padding: 12px 16px;
+    padding: 14px 20px;
     color: var(--text-secondary);
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.15s;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dropdown-item:last-child {
@@ -79,12 +79,12 @@
 }
 
 .dropdown-item:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
+    background: var(--primary-color);
+    color: white;
 }
 
 .dropdown-item.selected {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary-color);
-    font-weight: 600;
+    background: rgba(117, 30, 168, 0.2);
+    color: var(--accent-color);
+    font-weight: 800;
 }
