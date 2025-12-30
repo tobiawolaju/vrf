@@ -16,6 +16,11 @@ export default async function handler(req, res) {
         const publicState = getPublicState(gameState, playerId);
 
         // Since getPublicState might modify state (checkTimeouts), we should save it back
+        // Check for game end and process stats if needed
+        if (gameState.phase === 'ended') {
+            gameState = await db.processGameStats(gameState);
+        }
+
         await db.setGame(gameCode, gameState);
 
         res.status(200).json(publicState);

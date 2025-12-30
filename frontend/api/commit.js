@@ -23,6 +23,11 @@ export default async function handler(req, res) {
             gameState.commitments[playerId] = { card, skip: false };
         }
 
+        // Check for game end and process stats if needed
+        if (gameState.phase === 'ended') {
+            gameState = await db.processGameStats(gameState);
+        }
+
         await db.setGame(gameCode, gameState);
         res.status(200).json({ success: true });
     } catch (e) {

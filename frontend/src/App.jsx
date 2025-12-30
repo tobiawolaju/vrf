@@ -7,6 +7,7 @@ import CreateGame from './pages/CreateGame';
 import JoinGame from './pages/JoinGame';
 import WaitingRoom from './pages/WaitingRoom';
 import Gameplay from './pages/Gameplay';
+import Leaderboard from './pages/Leaderboard';
 import BalatroBackground from './components/BalatroBackground';
 
 const API_BASE = '/api';
@@ -241,6 +242,10 @@ function App() {
                     authenticated={authenticated}
                 />
             );
+        }
+
+        if (view === 'leaderboard') {
+            return <Leaderboard setView={setView} />;
         }
 
         if (!gameState) return <div className="loading">Connecting...</div>;

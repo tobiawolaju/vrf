@@ -142,6 +142,9 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                     <div className="home-buttons">
                         <button className="btn-primary" onClick={createGame}>Create New Match</button>
                         <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
+                        <button className="btn-secondary leaderboard-btn" onClick={() => setView('leaderboard')} style={{ marginTop: '10px', background: 'rgba(255,215,0,0.1)', color: '#ffd700', border: '1px solid rgba(255,215,0,0.3)' }}>
+                            🏆 Hall of Valor
+                        </button>
                         <div className="divider" style={{
                             height: '1px',
                             background: 'rgba(255,255,255,0.1)',
