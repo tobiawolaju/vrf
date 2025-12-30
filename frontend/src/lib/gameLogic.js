@@ -87,9 +87,10 @@ export function performRoll(gameState) {
     gameState.resolveDeadline = Date.now() + 5000;
     resolveRound(gameState, roll);
 
-    if (checkGameEnd(gameState)) {
-        gameState.phase = 'ended';
-    }
+    // Game end check moved to checkTimeouts to allow resolve animation to play
+    // if (checkGameEnd(gameState)) {
+    //     gameState.phase = 'ended';
+    // }
     // Note: advanceRound logic is typically called after delay by the client polling or next request in serverless
     // For serverless, we handle "automatic" progression via state checks on read.
 }
@@ -125,7 +126,11 @@ export function checkTimeouts(gameState) {
     // Auto-advance round (serverless trick: check on read if we should have advanced)
     if (gameState.phase === 'resolve' && now > gameState.resolveDeadline) {
         if (gameState.phase !== 'ended') {
-            advanceRound(gameState);
+            if (checkGameEnd(gameState)) {
+                gameState.phase = 'ended';
+            } else {
+                advanceRound(gameState);
+            }
         }
     }
 }
