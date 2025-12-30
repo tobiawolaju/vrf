@@ -52,7 +52,8 @@ export function determineWinner(gameState) {
 
 export function checkGameEnd(gameState) {
     if (gameState.round >= 5) return true;
-    const playersWithCards = gameState.players.filter(p => p.cards.some(c => !c.isBurned));
+    if (!gameState.players) return false;
+    const playersWithCards = gameState.players.filter(p => p.cards && p.cards.some(c => !c.isBurned));
     return playersWithCards.length === 0;
 }
 
