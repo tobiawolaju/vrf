@@ -30,11 +30,19 @@ export function initializeGame(startDelayMinutes = 1) {
 }
 
 export function determineWinner(gameState) {
-    const sorted = [...gameState.players].sort((a, b) => {
-        if (b.credits !== a.credits) return b.credits - a.credits;
-        const aRemaining = a.cards.filter(c => !c.isBurned).length;
-        const bRemaining = b.cards.filter(c => !c.isBurned).length;
+    if (!gameState?.players?.length) return null;
+
+    const sorted = [...gameState.players].filter(p => p).sort((a, b) => {
+        const aCredits = a.credits || 0;
+        const bCredits = b.credits || 0;
+        if (bCredits !== aCredits) return bCredits - aCredits;
+
+        const aCards = a.cards || [];
+        const bCards = b.cards || [];
+        const aRemaining = aCards.filter(c => !c.isBurned).length;
+        const bRemaining = bCards.filter(c => !c.isBurned).length;
         if (bRemaining !== aRemaining) return bRemaining - aRemaining;
+
         const aFirst = a.firstCorrectRound ?? Infinity;
         const bFirst = b.firstCorrectRound ?? Infinity;
         return aFirst - bFirst;
