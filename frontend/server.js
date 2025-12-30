@@ -27,9 +27,12 @@ app.post('/api/create', async (req, res) => {
     }
 });
 
+
+
+// Capture twitter handle in join
 app.post('/api/join', async (req, res) => {
     try {
-        const { gameCode, playerName, avatar, privyId } = req.body;
+        const { gameCode, playerName, avatar, privyId, twitterHandle } = req.body;
         const gameState = await db.getGame(gameCode);
 
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
@@ -37,63 +40,64 @@ app.post('/api/join', async (req, res) => {
             return res.status(400).json({ error: 'you got locked out, match already in progress' });
         }
 
-    }
-
         let playerId;
-    let newPlayer;
+        let newPlayer;
 
-    // Check if player already in game (re-join)
-    const existingPlayer = privyId ? gameState.players.find(p => p.id === privyId) : null;
+        // Check if player already in game (re-join)
+        const existingPlayer = privyId ? gameState.players.find(p => p.id === privyId) : null;
 
-    if (existingPlayer) {
-        playerId = existingPlayer.id;
-        existingPlayer.connected = true;
-        if (avatar) existingPlayer.avatar = avatar;
-        if (playerName) existingPlayer.name = playerName;
+        if (existingPlayer) {
+            playerId = existingPlayer.id;
+            existingPlayer.connected = true;
+            if (avatar) existingPlayer.avatar = avatar;
+            if (playerName) existingPlayer.name = playerName;
+            // Update handle if it wasn't there or changed
+            if (twitterHandle) existingPlayer.twitterHandle = twitterHandle;
+
+            await db.setGame(gameCode, gameState);
+
+            res.json({
+                success: true,
+                playerId,
+                playerNumber: existingPlayer.playerNumber,
+                playerName: existingPlayer.name,
+                gameState: getPublicState(gameState, playerId)
+            });
+            return;
+        }
+
+        playerId = privyId || generatePlayerId();
+        newPlayer = {
+            id: playerId,
+            playerNumber: gameState.players.length,
+            name: playerName || `Player ${gameState.players.length + 1}`,
+            twitterHandle: twitterHandle || null,
+            cards: [
+                { value: 1, isBurned: false },
+                { value: 2, isBurned: false },
+                { value: 3, isBurned: false }
+            ],
+            credits: 0,
+            firstCorrectRound: null,
+            connected: true,
+            avatar: avatar || null
+        };
+
+        gameState.players.push(newPlayer);
+        gameState.joinedCount++;
 
         await db.setGame(gameCode, gameState);
-
         res.json({
             success: true,
             playerId,
-            playerNumber: existingPlayer.playerNumber,
-            playerName: existingPlayer.name,
+            playerNumber: newPlayer.playerNumber,
+            playerName: newPlayer.name,
             gameState: getPublicState(gameState, playerId)
         });
-        return;
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    playerId = privyId || generatePlayerId();
-    newPlayer = {
-        id: playerId,
-        playerNumber: gameState.players.length,
-        name: playerName || `Player ${gameState.players.length + 1}`,
-        cards: [
-            { value: 1, isBurned: false },
-            { value: 2, isBurned: false },
-            { value: 3, isBurned: false }
-        ],
-        credits: 0,
-        firstCorrectRound: null,
-        connected: true,
-        avatar: avatar || null
-    };
-
-    gameState.players.push(newPlayer);
-    gameState.joinedCount++;
-
-    await db.setGame(gameCode, gameState);
-    res.json({
-        success: true,
-        playerId,
-        playerNumber: newPlayer.playerNumber,
-        playerName: newPlayer.name,
-        gameState: getPublicState(gameState, playerId)
-    });
-} catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Internal Server Error' });
-}
 });
 
 app.post('/api/commit', async (req, res) => {
@@ -131,10 +135,31 @@ app.get('/api/state', async (req, res) => {
 
         const publicState = getPublicState(gameState, playerId);
 
-        // Save back any auto-updates
+        // Check if game just ended and needs stats update
+        if (publicState.phase === 'ended' && !gameState.statsUpdated) {
+            const winner = publicState.winner;
+            if (winner) {
+                // Determine winner ID from public state object or find in storage
+                // publicState.winner is the player object
+                await db.updateGameStats(gameState, winner.id);
+                gameState.statsUpdated = true;
+            }
+        }
+
+        // Save back any auto-updates (timeouts, stats flags)
         await db.setGame(gameCode, gameState);
 
         res.json(publicState);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const leaderboard = await db.getLeaderboard();
+        res.json(leaderboard);
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: 'Internal Server Error' });

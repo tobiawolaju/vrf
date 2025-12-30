@@ -7,6 +7,7 @@ import CreateGame from './pages/CreateGame';
 import JoinGame from './pages/JoinGame';
 import WaitingRoom from './pages/WaitingRoom';
 import Gameplay from './pages/Gameplay';
+import Leaderboard from './pages/Leaderboard';
 import BalatroBackground from './components/BalatroBackground';
 
 const API_BASE = '/api';
@@ -167,7 +168,8 @@ function App() {
                     playerName: playerName,
                     avatar: avatar,
                     privyId: user.id,
-                    privyUser: user
+                    privyUser: user,
+                    twitterHandle: user.twitter?.username
                 })
             });
             const data = await res.json();
@@ -211,6 +213,10 @@ function App() {
 
     // RENDER ROUTING
     const renderContent = () => {
+        if (view === 'leaderboard') {
+            return <Leaderboard setView={setView} />;
+        }
+
         if (view === 'home') {
             return (
                 <Home
