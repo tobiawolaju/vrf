@@ -1,5 +1,5 @@
 import { useAccount, useWriteContract, useReadContract, useSwitchChain, useChainId } from 'wagmi';
-import { monadChain } from '../utils/chains';
+import { monadMainnet } from '../utils/chains';
 import './ContractTest.css';
 
 // Contract details
@@ -37,16 +37,16 @@ export default function ContractTest() {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getCount',
-        chainId: monadChain.id,
+        chainId: monadMainnet.id,
     });
 
     const { writeContract, isPending, isSuccess, isError, error, data: hash } = useWriteContract();
 
-    const isOnMonad = chainId === monadChain.id;
+    const isOnMonad = chainId === monadMainnet.id;
 
     const handleIncrement = async () => {
         if (!isOnMonad) {
-            switchChain({ chainId: monadChain.id });
+            switchChain({ chainId: monadMainnet.id });
             return;
         }
 
@@ -78,7 +78,7 @@ export default function ContractTest() {
                 ) : (
                     <button
                         className="btn-switch-chain"
-                        onClick={() => switchChain({ chainId: monadChain.id })}
+                        onClick={() => switchChain({ chainId: monadMainnet.id })}
                         disabled={isSwitching}
                     >
                         {isSwitching ? 'Switching...' : 'Switch to Monad'}

@@ -2,16 +2,17 @@ import { PrivyProvider } from '@privy-io/react-auth';
 import { WagmiProvider, createConfig } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http } from 'wagmi';
-import { monadChain } from '../utils/chains';
+import { monadMainnet, monadTestnet } from '../utils/chains';
 import { mainnet } from 'viem/chains';
 
 const PRIVY_APP_ID = 'cmdmvsh7k0184jl0imavr5w91';
 
 // Configure wagmi
 const wagmiConfig = createConfig({
-    chains: [monadChain, mainnet],
+    chains: [monadMainnet, monadTestnet, mainnet],
     transports: {
-        [monadChain.id]: http(monadChain.rpcUrls.default.http[0]),
+        [monadMainnet.id]: http(),
+        [monadTestnet.id]: http(),
         [mainnet.id]: http(),
     },
 });
@@ -23,8 +24,8 @@ export default function PrivyWrapper({ children }) {
         <PrivyProvider
             appId={PRIVY_APP_ID}
             config={{
-                supportedChains: [monadChain, mainnet],
-                defaultChain: monadChain,
+                supportedChains: [monadMainnet, monadTestnet, mainnet],
+                defaultChain: monadMainnet,
                 loginMethods: ['twitter'],
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',

@@ -2,7 +2,7 @@ import Dropdown from '../components/Dropdown';
 import SetupCard from '../components/SetupCard';
 import { useWallets } from '@privy-io/react-auth';
 import { createWalletClient, custom } from 'viem';
-import { monadChain } from '../utils/chains';
+import { monadMainnet } from '../utils/chains';
 import './Home.css';
 
 // Minimal ABI for SimpleCounter
@@ -43,13 +43,13 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                 return;
             }
 
-            // Switch to Monad Testnet if necessary
-            await wallet.switchChain(monadChain.id);
+            // Switch to Monad Mainnet if necessary
+            await wallet.switchChain(monadMainnet.id);
 
             const provider = await wallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: wallet.address,
-                chain: monadChain,
+                chain: monadMainnet,
                 transport: custom(provider)
             });
 
@@ -100,15 +100,23 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                             <span className="user-name">@{playerName}</span>
                             <div className="user-wallets">
                                 {ethWallet && (
-                                    <div className="wallet-tag eth">
-                                        <span className="wallet-icon">Ξ</span>
+                                    <div className="wallet-tag eth" title="Monad Wallet">
+                                        <span className="wallet-icon">M</span>
                                         <span className="wallet-address">{ethWallet.slice(0, 6)}...{ethWallet.slice(-4)}</span>
-                                    </div>
-                                )}
-                                {solWallet && (
-                                    <div className="wallet-tag sol">
-                                        <span className="wallet-icon">◎</span>
-                                        <span className="wallet-address">{solWallet.slice(0, 4)}...{solWallet.slice(-4)}</span>
+                                        <button
+                                            className="btn-copy"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(ethWallet);
+                                                // Optional: minimal feedback could be added here or just rely on user knowing
+                                            }}
+                                            title="Copy Address"
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: 'inherit' }}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                            </svg>
+                                        </button>
                                     </div>
                                 )}
                             </div>
