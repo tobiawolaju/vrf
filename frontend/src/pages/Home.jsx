@@ -2,7 +2,7 @@ import Dropdown from '../components/Dropdown';
 import SetupCard from '../components/SetupCard';
 import { useWallets } from '@privy-io/react-auth';
 import { createWalletClient, custom } from 'viem';
-import { mainnet } from 'viem/chains'; // Using mainnet as base, we'll override RPC if needed
+import { monadChain } from '../utils/chains';
 import './Home.css';
 
 // Minimal ABI for SimpleCounter
@@ -43,13 +43,13 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                 return;
             }
 
-            // Switch to Monad Mainnet if necessary (Privy handles this if configured)
-            // await wallet.switchChain(10143); // Example if using testnet, but user wants mainnet
+            // Switch to Monad Testnet if necessary
+            await wallet.switchChain(monadChain.id);
 
             const provider = await wallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: wallet.address,
-                chain: mainnet, // Placeholder chain, actual network handled by provider
+                chain: monadChain,
                 transport: custom(provider)
             });
 
