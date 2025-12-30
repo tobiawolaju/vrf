@@ -114,11 +114,6 @@ app.post('/api/commit', async (req, res) => {
             gameState.commitments[playerId] = { card, skip: false };
         }
 
-        // Check for game end and process stats if needed
-        if (gameState.phase === 'ended') {
-            gameState = await db.processGameStats(gameState);
-        }
-
         await db.setGame(gameCode, gameState);
         res.json({ success: true });
     } catch (e) {
@@ -137,24 +132,9 @@ app.get('/api/state', async (req, res) => {
         const publicState = getPublicState(gameState, playerId);
 
         // Save back any auto-updates
-        // Check for game end and process stats if needed
-        if (gameState.phase === 'ended') {
-            gameState = await db.processGameStats(gameState);
-        }
-
         await db.setGame(gameCode, gameState);
 
         res.json(publicState);
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-app.get('/api/leaderboard', async (req, res) => {
-    try {
-        const leaderboard = await db.getLeaderboard();
-        res.json(leaderboard);
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: 'Internal Server Error' });
