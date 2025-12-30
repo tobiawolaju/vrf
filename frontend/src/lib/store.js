@@ -61,13 +61,9 @@ export const db = {
         // Only process if game ended and not yet recorded
         if (gameState.phase !== 'ended' || gameState.statsRecorded) return gameState;
 
-        try {
-            const winner = determineWinner(gameState);
-            if (!winner) {
-                console.warn("No winner found for game", gameState.gameCode);
-                return gameState;
-            }
+        const winner = determineWinner(gameState);
 
+        try {
             // Helper to update player stats
             const updatePlayerStats = async (player) => {
                 const isWinner = player.id === winner.id;

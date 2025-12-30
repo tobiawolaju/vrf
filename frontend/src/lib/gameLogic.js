@@ -30,19 +30,11 @@ export function initializeGame(startDelayMinutes = 1) {
 }
 
 export function determineWinner(gameState) {
-    if (!gameState?.players?.length) return null;
-
-    const sorted = [...gameState.players].filter(p => p).sort((a, b) => {
-        const aCredits = a.credits || 0;
-        const bCredits = b.credits || 0;
-        if (bCredits !== aCredits) return bCredits - aCredits;
-
-        const aCards = a.cards || [];
-        const bCards = b.cards || [];
-        const aRemaining = aCards.filter(c => !c.isBurned).length;
-        const bRemaining = bCards.filter(c => !c.isBurned).length;
+    const sorted = [...gameState.players].sort((a, b) => {
+        if (b.credits !== a.credits) return b.credits - a.credits;
+        const aRemaining = a.cards.filter(c => !c.isBurned).length;
+        const bRemaining = b.cards.filter(c => !c.isBurned).length;
         if (bRemaining !== aRemaining) return bRemaining - aRemaining;
-
         const aFirst = a.firstCorrectRound ?? Infinity;
         const bFirst = b.firstCorrectRound ?? Infinity;
         return aFirst - bFirst;
@@ -52,8 +44,7 @@ export function determineWinner(gameState) {
 
 export function checkGameEnd(gameState) {
     if (gameState.round >= 5) return true;
-    if (!gameState.players) return false;
-    const playersWithCards = gameState.players.filter(p => p.cards && p.cards.some(c => !c.isBurned));
+    const playersWithCards = gameState.players.filter(p => p.cards.some(c => !c.isBurned));
     return playersWithCards.length === 0;
 }
 
@@ -66,24 +57,21 @@ export function generateVRFRoll(gameState) {
 }
 
 export function resolveRound(gameState, roll) {
-    if (!gameState.players) return;
     gameState.players.forEach(player => {
-        const commitment = gameState.commitments?.[player.id];
+        const commitment = gameState.commitments[player.id];
         if (!commitment) return;
         if (commitment.skip) return;
 
         const selectedCard = commitment.card;
         if (selectedCard === roll) {
-            player.credits = (player.credits || 0) + 1;
-            if (player.firstCorrectRound === null || player.firstCorrectRound === undefined) {
+            player.credits += 1;
+            if (player.firstCorrectRound === null) {
                 player.firstCorrectRound = gameState.round;
             }
         } else {
-            if (player.cards) {
-                const card = player.cards.find(c => c.value === selectedCard && !c.isBurned);
-                if (card) {
-                    card.isBurned = true;
-                }
+            const card = player.cards.find(c => c.value === selectedCard && !c.isBurned);
+            if (card) {
+                card.isBurned = true;
             }
         }
     });
@@ -98,6 +86,13 @@ export function performRoll(gameState) {
     gameState.phase = 'resolve';
     gameState.resolveDeadline = Date.now() + 5000;
     resolveRound(gameState, roll);
+
+    // Game end check moved to checkTimeouts to allow resolve animation to play
+    // if (checkGameEnd(gameState)) {
+    //     gameState.phase = 'ended';
+    // }
+    // Note: advanceRound logic is typically called after delay by the client polling or next request in serverless
+    // For serverless, we handle "automatic" progression via state checks on read.
 }
 
 export function advanceRound(gameState) {
@@ -105,47 +100,37 @@ export function advanceRound(gameState) {
     gameState.commitments = {};
     gameState.lastRoll = null;
     gameState.phase = 'commit';
-    gameState.commitDeadline = Date.now() + 25000;
+    gameState.commitDeadline = Date.now() + 25000; // Increased commit time for better UX
 }
 
 export function checkTimeouts(gameState) {
-    try {
-        const now = Date.now();
+    const now = Date.now();
 
-        // Auto-start game
-        if (gameState.phase === 'waiting' && now > gameState.startDeadline) {
-            if (gameState.players.length > 0) {
-                gameState.round = 1;
-                gameState.phase = 'commit';
-                gameState.commitDeadline = now + 25000;
+    // Auto-start game
+    if (gameState.phase === 'waiting' && now > gameState.startDeadline) {
+        if (gameState.players.length > 0) {
+            gameState.round = 1;
+            gameState.phase = 'commit';
+            gameState.commitDeadline = now + 25000;
+        }
+    }
+
+    // Auto-resolve round
+    if (gameState.phase === 'commit' && now > gameState.commitDeadline) {
+        gameState.players.forEach(p => {
+            if (!gameState.commitments[p.id]) gameState.commitments[p.id] = { card: null, skip: true };
+        });
+        performRoll(gameState);
+    }
+
+    // Auto-advance round (serverless trick: check on read if we should have advanced)
+    if (gameState.phase === 'resolve' && now > gameState.resolveDeadline) {
+        if (gameState.phase !== 'ended') {
+            if (checkGameEnd(gameState)) {
+                gameState.phase = 'ended';
+            } else {
+                advanceRound(gameState);
             }
-        }
-
-        // Auto-resolve round
-        if (gameState.phase === 'commit' && now > gameState.commitDeadline) {
-            if (!gameState.commitments) gameState.commitments = {};
-            gameState.players.forEach(p => {
-                if (!gameState.commitments[p.id]) gameState.commitments[p.id] = { card: null, skip: true };
-            });
-            performRoll(gameState);
-        }
-
-        // Auto-advance round (serverless trick: check on read if we should have advanced)
-        if (gameState.phase === 'resolve' && now > gameState.resolveDeadline) {
-            if (gameState.phase !== 'ended') {
-                if (checkGameEnd(gameState)) {
-                    gameState.phase = 'ended';
-                } else {
-                    advanceRound(gameState);
-                }
-            }
-        }
-
-    } catch (error) {
-        console.error("Error in checkTimeouts:", error);
-        // Fallback: If we are in round 5+ and stuck, force end
-        if (gameState.round >= 5 && gameState.phase !== 'ended') {
-            gameState.phase = 'ended';
         }
     }
 }
