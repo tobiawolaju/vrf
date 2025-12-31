@@ -92,7 +92,7 @@ contract DiceRoller {
         
         switchboard.updateFeeds{ value: msg.value }(updates);
 
-        SwitchboardTypes.RandomnessResult memory randomness = switchboard.getRandomness(rId).result;
+        SwitchboardTypes.Randomness memory randomness = switchboard.getRandomness(rId);
         
         // Ensure it settled
         if (randomness.settledAt == 0) revert RandomnessNotSettled();
