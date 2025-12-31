@@ -363,9 +363,16 @@ app.get('/api/state', async (req, res) => {
             await db.setGame(gameCode, gameState);
 
             // Execute in background
-            executeOnChainRoll(gameCode, gameState.round + 1).catch(err => {
+            executeOnChainRoll(gameCode, gameState.round).catch(async err => {
                 console.error(`❌ [GAME] Failed to initiate roll for ${gameCode}:`, err.message);
-                // We don't reset here immediately, executeOnChainRoll has its own retry/reset logic
+                // Reset state so it can retry on next poll if the TX failed to even send
+                const st = await db.getGame(gameCode);
+                if (st && st.rollRequested && st.phase === 'rolling') {
+                    console.log(`🔄 [GAME] Resetting state for ${gameCode} due to immediate failure.`);
+                    st.rollRequested = false;
+                    st.phase = 'commit';
+                    await db.setGame(gameCode, st);
+                }
             });
         }
 

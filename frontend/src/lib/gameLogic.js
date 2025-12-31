@@ -82,6 +82,15 @@ export function performRoll(gameState) {
 }
 
 export function advanceRound(gameState) {
+    // Check if game should end
+    const gameEnded = checkGameEnd(gameState) || gameState.round >= 5;
+
+    if (gameEnded) {
+        gameState.phase = 'ended';
+        return;
+    }
+
+    gameState.round++;
     gameState.commitments = {};
     gameState.lastRoll = null;
     gameState.phase = 'commit';
@@ -93,7 +102,7 @@ export function checkTimeouts(gameState) {
 
     if (gameState.phase === 'waiting' && now > gameState.startDeadline) {
         if (gameState.players.length > 0) {
-            gameState.round = 0;
+            gameState.round = 1;
             gameState.phase = 'commit';
             gameState.commitDeadline = now + 25000;
         }
