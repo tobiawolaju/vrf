@@ -15,7 +15,7 @@ export function initializeGame(startDelayMinutes = 1) {
     return {
         gameCode,
         players: [],
-        round: 0, // round being resolved
+        round: 1, // round being resolved
         phase: 'waiting',
         commitDeadline: null,
         resolveDeadline: null,
