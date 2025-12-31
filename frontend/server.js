@@ -16,21 +16,41 @@ app.use(express.json());
 
 // --- BLOCKCHAIN CONFIG ---
 
-// Minimal ABI
+// Comprehensive ABI for Switchboard On-Demand Flow
 const DICEROLLER_ABI = [
     {
         "type": "function",
         "name": "requestDiceRoll",
         "inputs": [{ "name": "roundId", "type": "uint256" }],
-        "outputs": [{ "name": "", "type": "bytes32" }],
+        "outputs": [{ "name": "", "type": "uint256" }],
         "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "submitVerifiedRoll",
+        "inputs": [
+            { "name": "roundId", "type": "uint256" },
+            { "name": "randomness", "type": "bytes32" }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "event",
+        "name": "DiceRequested",
+        "inputs": [
+            { "name": "roundId", "type": "uint256", "indexed": true },
+            { "name": "timestamp", "type": "uint256", "indexed": false }
+        ],
+        "anonymous": false
     },
     {
         "type": "event",
         "name": "DiceRolled",
         "inputs": [
             { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "result", "type": "uint8", "indexed": false }
+            { "name": "result", "type": "uint8", "indexed": false },
+            { "name": "randomness", "type": "bytes32", "indexed": false }
         ],
         "anonymous": false
     }
@@ -46,7 +66,7 @@ if (process.env.ADMIN_PRIVATE_KEY) {
     try {
         // Define Monad Mainnet chain
         const monadMainnet = {
-            id: 41454,
+            id: 143,
             name: 'Monad Mainnet',
             network: 'monad-mainnet',
             nativeCurrency: {
@@ -88,45 +108,45 @@ if (process.env.ADMIN_PRIVATE_KEY) {
 
 async function executeOnChainRoll(gameCode, roundNumber) {
     if (!contract) {
-        console.warn("Blockchain not connected. Simulating roll (Fallback).");
-        // Fallback or Error? For Migration, let's error to force config.
+        console.warn("Blockchain not connected. Simulation Fallback.");
         throw new Error("Blockchain not configured");
     }
 
-    // Generate a unique integer roundId. 
-    // Simple hash of gameCode + roundNumber? 
-    // Or just use a mapping in DB? simplified:
-    // We'll trust the gameCode is unique enough, but roundId is uint256. 
-    // Let's hash it: BigInt(keccak256(gameCode + round))
-    // For now, let's just use a large random request ID or mapped ID.
-    // Actually, simple way: ASCII bytes of gameCode + round padded?
-    // Let's use a numeric hash.
+    try {
+        const roundId = BigInt(Date.now());
 
-    // Hash gameCode (string) + round (int) -> uint256
-    const uniqueString = `${gameCode}-${roundNumber}-${Date.now()}`; // Add timestamp to avoid collisions on replay?
-    // Actually Contract prevents replay of same roundId. 
-    // So we should be deterministic per round IF we want idempotency.
-    // But development... let's use timestamp to be safe.
+        // Store map of roundId -> gameCode to resolve later
+        global.pendingRolls = global.pendingRolls || new Map();
+        global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
 
-    // Simple numeric hash for uint256
-    let hash = 0;
-    for (let i = 0; i < uniqueString.length; i++) {
-        hash = ((hash << 5) - hash) + uniqueString.charCodeAt(i);
-        hash |= 0;
+        console.log(`🎲 [VRF] Requesting Roll for ${gameCode} (Round ${roundNumber}) - ID: ${roundId}`);
+
+        // 1. REQUEST
+        const reqTx = await contract.write.requestDiceRoll([roundId]);
+        console.log(`   Request Tx: ${reqTx}`);
+
+        // 2. FETCH & SUBMIT (Acting as Switchboard Puller)
+        // In a hackathon demo, we handle the pulling and submitting autonomously.
+        // Wait for request to be mined first.
+        setTimeout(async () => {
+            try {
+                console.log(`🔮 [VRF] Fetching randomness for ID: ${roundId}...`);
+                // Simulate pulling from Switchboard API
+                const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+
+                console.log(`📡 [VRF] Submitting randomness to contract...`);
+                const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
+                console.log(`   Submit Tx: ${subTx}`);
+            } catch (err) {
+                console.error("❌ Failed to fulfill VRF request:", err.message);
+            }
+        }, 2000); // 2s delay for transaction propagation
+
+        return { txHash: reqTx, roundId: roundId.toString() };
+    } catch (e) {
+        console.error("❌ executeOnChainRoll Error:", e.message);
+        throw e;
     }
-    const roundId = BigInt(Math.abs(hash) + Date.now()); // Ensure positive and basically unique
-
-    // Store map of roundId -> gameCode to resolve later
-    // We can store this in memory or DB.
-    global.pendingRolls = global.pendingRolls || new Map();
-    global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
-
-    console.log(`🎲 Requesting Roll on-chain for ${gameCode} (Round ${roundNumber}) - ID: ${roundId}`);
-
-    const tx = await contract.write.requestDiceRoll([roundId]);
-    console.log(`   Tx Hash: ${tx}`);
-
-    return { txHash: tx, roundId: roundId.toString() };
 }
 
 function setupContractListener() {
