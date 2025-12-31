@@ -1,33 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Montserrat:wght@400;600;800&display=swap');
 
 :root {
-  /* Balatro Signature Palette */
-  --bg-color: #0d0216;
-  --surface-color: rgba(20, 10, 40, 0.85);
-  --surface-hover: rgba(40, 20, 70, 0.95);
+  /* Balatro Signature Palette - BRIGHTENED */
+  --bg-color: #2e0a4f;
+  /* Lightened from #0d0216 */
+  --surface-color: rgba(60, 20, 100, 0.85);
+  --surface-hover: rgba(85, 35, 130, 0.95);
 
-  --primary-color: #e81123;
-  /* Balatro Red */
-  --primary-hover: #ff2d3d;
-  --primary-shadow: #8B0000;
+  --primary-color: #e040fb;
+  /* Vibrant Electric Purple */
+  --primary-hover: #ea80fc;
+  --primary-shadow: #7b1fa2;
 
-  --secondary-color: #0081bb;
-  /* Balatro Blue */
-  --secondary-hover: #00a1ea;
-  --secondary-shadow: #004c6e;
+  --secondary-color: #00b0ff;
+  /* Brighter Balatro Blue */
+  --secondary-hover: #40c4ff;
+  --secondary-shadow: #0091ea;
 
-  --success-color: #008111;
-  --success-hover: #00a816;
-  --success-shadow: #005a0c;
+  --success-color: #4caf50;
+  /* Better Balatro Green */
+  --success-hover: #81c784;
+  --success-shadow: #1b5e20;
 
-  --accent-color: #fdcf00;
-  /* Gold */
-  --accent-shadow: #b08d00;
+  --accent-color: #ffeb3b;
+  /* Brighter Gold */
+  --accent-shadow: #fbc02d;
 
   --text-primary: #ffffff;
-  --text-secondary: #ffb8b8;
-  --danger-color: #ff3e3e;
-  --border-color: rgba(255, 255, 255, 0.25);
+  --text-secondary: #ffccd5;
+  --danger-color: #ff5252;
+  --border-color: rgba(255, 255, 255, 0.35);
 
   /* Typography */
   --font-game: 'Luckiest Guy', cursive;
@@ -104,68 +106,63 @@ p {
   font-weight: 500;
 }
 
-/* 3D PRESSABLE BUTTONS */
+/* 3D PRESSABLE BUTTONS - Balatro Tile Style */
 button {
   cursor: pointer;
   border: none;
   font-family: var(--font-game);
-  font-size: 1.05rem;
-  padding: 10px 24px;
-  border-radius: var(--radius-md);
-  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  font-size: 1.1rem;
+  padding: 12px 28px;
+  border-radius: 4px;
+  transition: all 0.1s cubic-bezier(0.2, 0, 0, 1);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   outline: none;
   user-select: none;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.5);
 }
 
 button:active {
-  transform: translateY(4px);
+  transform: translateY(2px) scale(0.98);
   box-shadow: none !important;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-  filter: grayscale(1);
 }
 
 .btn-primary {
   background: var(--primary-color);
   color: white;
-  box-shadow: 0 6px 0 var(--primary-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 0 var(--primary-shadow), -4px 10px 0 rgba(0, 0, 0, 0.2);
+  border: 3px solid #1a1a1a;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--primary-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 0 var(--primary-shadow), -6px 14px 0 rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
   background: var(--success-color);
   color: white;
-  box-shadow: 0 6px 0 var(--success-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 0 var(--success-shadow), -4px 10px 0 rgba(0, 0, 0, 0.2);
+  border: 3px solid #1a1a1a;
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--success-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--success-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 0 var(--success-shadow), -6px 14px 0 rgba(0, 0, 0, 0.2);
 }
 
 .btn-danger {
   background: var(--danger-color);
   color: white;
-  box-shadow: 0 6px 0 #991b1b, 0 10px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 0 var(--danger-shadow), -4px 10px 0 rgba(0, 0, 0, 0.2);
+  border: 3px solid #1a1a1a;
 }
 
 /* Glassmorphism Overhaul (Now "Card" Aesthetic) */
@@ -267,7 +264,7 @@ button:disabled {
   bottom: 0;
   pointer-events: none;
   z-index: 9998;
-  background: radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+  background: radial-gradient(circle, transparent 75%, rgba(0, 0, 0, 0.35) 100%);
 }
 
 .fade-in {

@@ -9,7 +9,7 @@
     align-items: center;
     justify-content: flex-end;
     padding-bottom: var(--spacing-lg);
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+    background: linear-gradient(to top, rgba(46, 10, 79, 0.6) 0%, transparent 100%);
     z-index: 20;
 }
 
