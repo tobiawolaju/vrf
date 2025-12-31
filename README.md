@@ -1,4 +1,4 @@
-# 🎲 Last Die Standing
+# 🎲 MonkeyHand
 
 A high-stakes multiplayer dice game powered by **Switchboard VRF on Monad** for provably fair, on-chain verifiable randomness.
 

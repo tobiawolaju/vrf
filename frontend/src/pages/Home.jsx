@@ -87,7 +87,7 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
     const solWallet = user?.linkedAccounts?.find(acc => acc.type === 'wallet' && acc.chainType === 'solana')?.address;
 
     return (
-        <SetupCard title="🎲 Last Die Standing">
+        <SetupCard title="🎲 MonkeyHand">
             {!authenticated ? (
                 <div className="home-buttons">
                     <p className="login-prompt">Please log in to play</p>

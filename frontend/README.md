@@ -1,7 +1,7 @@
-# 🎲 Last Die Standing - Frontend
+# 🎲 MonkeyHand - Frontend
 
 ## 🎮 Game Description
-**Last Die Standing** is a multiplayer, round-based elimination game built with **React**, **Vite**, and **Privy** for Web3 authentication.
+**MonkeyHand** is a multiplayer, round-based elimination game built with **React**, **Vite**, and **Privy** for Web3 authentication.
 
 Players join a match and are dealt 3 cards. In each round, they must secretly commit to one of their cards. A dice is rolled (simulated via VRF logic), and if a player's committed card matches the roll, they gain a point (credit). If it doesn't match, they lose that card. The game continues until only one player remains or 5 rounds are completed.
 
