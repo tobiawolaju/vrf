@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ISwitchboard} from "@switchboard-xyz/on-demand-solidity/ISwitchboard.sol";
-import {Structs} from "@switchboard-xyz/on-demand-solidity/structs/Structs.sol";
+import {ISwitchboard} from "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol";
+import {RandomnessResult} from "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol";
 
 /*
     Last Die Standing – Fairness Anchor Contract (Switchboard On-Demand Ver.)
@@ -92,7 +92,7 @@ contract DiceRoller {
         
         switchboard.updateFeeds{ value: msg.value }(updates);
 
-        Structs.RandomnessResult memory randomness = switchboard.getRandomness(rId).result;
+        RandomnessResult memory randomness = switchboard.getRandomness(rId).result;
         
         // Ensure it settled
         if (randomness.settledAt == 0) revert RandomnessNotSettled();
