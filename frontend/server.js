@@ -36,7 +36,7 @@ const DICEROLLER_ABI = [
     }
 ];
 
-const CONTRACT_ADDRESS = process.env.DICEROLLER_ADDRESS || "0x0000000000000000000000000000000000000000"; // Update after deploy
+const CONTRACT_ADDRESS = process.env.DICEROLLER_ADDRESS || "0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea";
 
 // Admin Wallet (The Backend Relayer)
 let adminWallet = null;

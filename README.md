@@ -1,175 +1,219 @@
 # 🎲 Last Die Standing
 
-A minimal but complete multiplayer dice prediction game with verifiable random function (VRF) proof generation.
+A high-stakes multiplayer dice game powered by **Switchboard VRF on Monad** for provably fair randomness.
 
-## 🎮 Game Rules
+## 🎮 Game Overview
 
-- **Players**: 2-4 players (local multiplayer)
-- **Starting Cards**: Each player starts with cards [1, 2, 3]
-- **Each Round**:
-  - **Commit Phase** (5 seconds): Players secretly select a card (1/2/3) or skip
-  - **Resolve Phase**: Backend rolls a 3-sided die using VRF
-  - **Outcomes**:
-    - ✅ Correct prediction → +1 credit, card retained
-    - ❌ Wrong prediction → card burned (removed)
-    - ⏭️ Skip → no change
-- **End Condition**: Game ends after 5 rounds OR when all players have no cards
-- **Winner**: Highest credits
-  - **Tie-breakers**: Most remaining cards → Earliest correct prediction
+"Last Die Standing" is a card-prediction game where players bet on dice rolls (1-3) using limited cards. The last player with cards remaining wins!
 
-## 🛠️ Tech Stack
+### How It Works
 
-- **Frontend**: React (Vite)
-- **Backend**: Node.js (Express)
-- **Real-time**: Simple polling (no WebSockets)
-- **VRF**: Mock implementation using `crypto.randomInt()` + SHA256 proof
-
-## 🚀 How to Run
-
-### Prerequisites
-- Node.js (v16 or higher)
-- npm
-
-### Backend Setup
-
-```bash
-cd backend
-npm install
-npm start
-```
-
-The backend will start on `http://localhost:3001`
-
-### Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend will start on `http://localhost:5173` (or similar Vite dev server port)
-
-### Play the Game
-
-1. Open your browser to the frontend URL
-2. Select number of players (2-4)
-3. Click "Start Game"
-4. Each player takes turns selecting cards or skipping
-5. Once all players commit, click "Roll the Die!"
-6. View results and VRF proof
-7. Click "Verify Roll" to validate the proof client-side
-8. Continue for 5 rounds or until all cards are gone
-
-## 🔒 How Fairness Works (VRF)
-
-### Current Implementation (Mock VRF)
-
-The game uses a **mock VRF** for demonstration purposes:
-
-1. **Random Generation**: `crypto.randomInt(1, 4)` generates a random number 1-3
-2. **Seed Creation**: `timestamp + round number` creates a unique seed
-3. **Proof Generation**: `SHA256(seed + result)` creates a cryptographic proof hash
-4. **Client Verification**: Frontend recomputes the hash to verify integrity
-
-### How to Verify
-
-1. After each roll, note the displayed:
-   - **Seed**: e.g., `1735218346000-round-1`
-   - **Roll Result**: e.g., `2`
-   - **Proof Hash**: e.g., `a3f5b9c...`
-2. Click **"Verify Roll"** button
-3. The client recomputes `SHA256(seed:result)` and compares with the proof
-4. ✅ **Valid** = proof matches, ❌ **Invalid** = proof doesn't match
-
-### Production VRF Integration
-
-In a production environment, replace the mock VRF with a real VRF service:
-
-#### Where to Integrate (see `backend/dice.js`)
-
-Look for the commented section:
-```javascript
-// ========================================================================
-// MOCK VRF IMPLEMENTATION
-// ========================================================================
-// In production, this would be replaced with a real VRF service like:
-// - Switchboard VRF (Solana)
-// - Chainlink VRF (EVM chains)
-// - Pyth Entropy (Multi-chain)
-```
-
-#### Real VRF Services
-
-**Switchboard VRF (Solana)**
-- Request randomness with a callback
-- Receive cryptographically verifiable random value
-- Verify proof on-chain
-
-**Chainlink VRF (Ethereum/EVM)**
-- Request randomness via smart contract
-- Oracle returns random value + proof
-- Verify proof on-chain automatically
-
-**Pyth Entropy (Multi-chain)**
-- Request entropy from Pyth network
-- Receive random value with cryptographic proof
-- Verify via Pyth's verification endpoint
-
-#### Integration Steps
-
-1. **Replace `generateVRFRoll()` function** with VRF service API call
-2. **Store VRF request ID** for tracking
-3. **Receive callback** with random value + proof
-4. **Verify proof** using service's verification method
-5. **Use verified random value** for game logic
-
-## 📁 Project Structure
-
-```
-vrf/
-├── backend/
-│   ├── dice.js          # Express server with game logic
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx      # Main game component
-│   │   ├── App.css      # Arcade-style styling
-│   │   └── main.jsx     # React entry point
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-└── README.md
-```
-
-## 🎯 Features Implemented
-
-✅ 2-4 player support  
-✅ Card selection UI with visual feedback  
-✅ 5-second countdown timer  
-✅ Hidden commitments (revealed only after all players commit)  
-✅ VRF mock with seed + proof generation  
-✅ Client-side proof verification  
-✅ Real-time game state polling  
-✅ Winner determination with tie-breakers  
-✅ Arcade-style UI with animations  
-✅ Complete game flow from setup to end  
-
-## 🔧 API Endpoints
-
-- `POST /api/start` - Start new game with player count
-- `POST /api/commit` - Submit player card selection or skip
-- `POST /api/roll` - Roll die and resolve round (VRF)
-- `GET /api/state` - Get current game state
-
-## 📝 Notes
-
-- No authentication or payments required
-- All game state stored in-memory (resets on server restart)
-- Simple polling every 1 second for state updates
-- Minimal dependencies for easy weekend implementation
-- Ready for VRF integration with clear code comments
+1. Each player starts with 3 cards (one each of 1, 2, 3)
+2. Every round, predict the dice roll by playing a card
+3. **Correct prediction** → Earn credits
+4. **Wrong prediction** → Your card burns forever
+5. Run out of cards → You're eliminated
+6. Last player standing wins!
 
 ---
 
-Built with ❤️ as a minimal, shippable game demo
+## 🔗 Switchboard VRF Architecture
+
+### System Diagram
+
+```mermaid
+graph LR
+    A[Frontend] -->|HTTP| B[Backend Server]
+    B -->|Request tx| C[DiceRoller Contract]
+    C -->|Emit event| B
+    B -->|Pull API| D[Switchboard Oracle]
+    D -->|Verified randomness| B
+    B -->|Submit tx| C
+    C -->|Emit DiceRolled| B
+    B -->|Update state| E[Redis/KV]
+    A -->|Poll| B
+```
+
+### Flow
+
+1. **Request** - Backend triggers `requestDiceRoll()` on Monad
+2. **Fetch** - Backend retrieves verified randomness from Switchboard Oracle
+3. **Submit** - Backend submits to `submitVerifiedRoll()` on contract
+4. **Verify** - Contract validates and emits `DiceRolled` with proof
+5. **Display** - Frontend shows result + Monad Explorer verification link
+
+### Trust Model
+
+| Component | Can Manipulate Result? | Why |
+|-----------|------------------------|-----|
+| Backend | ❌ No | Can only relay Switchboard's randomness |
+| Contract | ❌ No | Validates and stores verified randomness |
+| Switchboard | ✅ Trusted | TEE-based oracle (industry standard) |
+| Frontend | ❌ No | Read-only display |
+
+**Verification:** Every roll includes a transaction hash linking to [Monad Explorer](https://monadvision.com), allowing players to verify the on-chain proof.
+
+---
+
+## 🚀 Deployed Contracts
+
+- **DiceRoller:** `0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea` (Monad Mainnet)
+- **Switchboard Oracle:** `0x33A5066f65f66161bEb3f827A3e40fce7d7A2e6C`
+
+---
+
+## 💻 Tech Stack
+
+### Frontend
+- React + Vite
+- Privy (Social auth via Twitter)
+- Wagmi + Viem (Blockchain)
+- Monad Mainnet
+
+### Backend
+- Express.js
+- Viem (Contract interaction)
+- Redis/Vercel KV (State persistence)
+
+### Smart Contracts
+- Solidity 0.8.24
+- Hardhat
+- Switchboard On-Demand VRF
+
+---
+
+## 🛠️ Local Development
+
+### Prerequisites
+
+- Node.js 18+
+- Monad Mainnet RPC access
+- Private key for backend wallet (small MON for gas)
+
+### Quick Start
+
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Configure environment
+cp .env.example .env
+# Add: ADMIN_PRIVATE_KEY, DICEROLLER_ADDRESS
+
+# Terminal 1: Start backend
+npm run server
+
+# Terminal 2: Start frontend
+npm run dev
+```
+
+### Testing
+
+```bash
+# Test all API endpoints
+node test.js
+
+# Test on-chain dice roll
+node roll-dice.js
+```
+
+See [LOCAL_SETUP.md](frontend/LOCAL_SETUP.md) for detailed instructions.
+
+---
+
+## 📦 Contract Deployment
+
+### Deploy DiceRoller to Monad Mainnet
+
+```bash
+cd contracts
+
+# Install dependencies
+npm install
+
+# Configure .env
+echo "PRIVATE_KEY=your_deployer_private_key" > .env
+
+# Deploy contract
+npx hardhat run scripts/deploy_switchboard.js --network monadMainnet
+```
+
+**Expected Output:**
+```
+🎲 DiceRoller deployed to: 0x...
+   Owner: 0x...
+```
+
+**After Deployment:**
+1. Copy the contract address
+2. Update `frontend/.env`:
+   ```
+   DICEROLLER_ADDRESS=0x...
+   ADMIN_PRIVATE_KEY=your_backend_wallet_key
+   ```
+3. Restart backend server
+
+---
+
+## 🎯 Key Features
+
+✅ **Provably Fair** - Switchboard TEE-verified randomness  
+✅ **On-Chain Verification** - Every roll has blockchain proof  
+✅ **Real-Time Multiplayer** - Live game state synchronization  
+✅ **Social Login** - Twitter auth via Privy  
+✅ **Leaderboard** - Track wins and win rates  
+✅ **Mobile Responsive** - Play anywhere
+
+---
+
+## 🏆 Leaderboard
+
+Every game updates the global leaderboard with:
+- Games played
+- Games won  
+- Win percentage
+
+Top 50 players ranked by win rate!
+
+---
+
+## 📚 Documentation
+
+- [Local Setup Guide](frontend/LOCAL_SETUP.md) - Development environment
+- [Testing Guide](frontend/TESTING.md) - API & VRF tests
+- [Deployment Guide](DEPLOYMENT.md) - Vercel production setup
+- [Implementation Summary](docs/implementation_summary.md) - Architecture details
+
+---
+
+## 🎲 Game Rules
+
+- **Players**: 2-4 players
+- **Starting Cards**: Each player has cards [1, 2, 3]
+- **Round Flow**:
+  - **Commit Phase** (25s): Select a card or skip
+  - **Rolling**: On-chain dice roll (1-3)
+  - **Resolve** (5s): See results, wrong cards burn
+- **Win Condition**: Last player with cards OR highest credits after 5 rounds
+- **Tie-breakers**: Most cards → Earliest correct prediction
+
+---
+
+## 🔐 Security
+
+- All randomness verifiable on-chain via Monad Explorer
+- Backend wallet isolated (gas-only funds)
+- Environment variables for sensitive data
+- No player funds held in contracts
+- Open-source contract code
+
+---
+
+## 📄 License
+
+MIT
+
+---
+
+**Built with ❤️ for Monad Hackathon 2025**
