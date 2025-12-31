@@ -38,6 +38,7 @@ const Gameplay = ({
                 resolveTimeLeft={resolveTimeLeft}
                 isRolling={isRolling}
                 lastRoll={gameState.lastRoll}
+                lastRollTxHash={gameState.lastRollTxHash}
                 currentUserCommitment={gameState.currentPlayer?.commitment}
             />
 

@@ -2,41 +2,66 @@
 pragma solidity ^0.8.20;
 
 import {ISwitchboard} from "@switchboard-xyz/on-demand-solidity/ISwitchboard.sol";
-import {Structs} from "@switchboard-xyz/on-demand-solidity/structs/Structs.sol";
 
-/*
-    Last Die Standing – Fairness Anchor Contract (Switchboard On-Demand Ver.)
-*/
+// Abstract contract for handling callbacks
+abstract contract SwitchboardCallbackHandler {
+    error SwitchboardCallbackCallerNotSwitchboard();
 
-contract DiceRoller {
+    // The address of the Switchboard contract
+    ISwitchboard public immutable switchboard;
+
+    constructor(address _switchboard) {
+        switchboard = ISwitchboard(_switchboard);
+    }
+
+    modifier onlySwitchboard() {
+        if (msg.sender != address(switchboard)) {
+            revert SwitchboardCallbackCallerNotSwitchboard();
+        }
+        _;
+    }
+
+    // This function is called by Switchboard to fulfill the request
+    // The `randomnessId` is the unique ID of the request
+    // The `randomness` is the result
+    function switchboardCallback(
+        bytes32 randomnessId,
+        uint256[] calldata randomness
+    ) external onlySwitchboard {
+        onRandomnessReady(randomnessId, randomness);
+    }
+
+    function onRandomnessReady(
+        bytes32 randomnessId,
+        uint256[] calldata randomness
+    ) internal virtual;
+}
+
+contract DiceRoller is SwitchboardCallbackHandler {
     // --- Errors ---
-    error AlreadyFulfilled(uint256 roundId);
-    error RandomnessNotSettled();
+    error InvalidRoundId();
+    error RoundAlreadyRolled();
+    error RequestAlreadyPending();
     error NotOwner();
 
     // --- Events ---
     event DiceRequested(uint256 indexed roundId, bytes32 randomnessId);
     event DiceRolled(uint256 indexed roundId, uint8 result);
 
-    // --- Storage ---
-    ISwitchboard public switchboard;
+    // --- State ---
     address public owner;
-    bytes32 public queueId; // Monad Mainnet or Testnet Queue ID
+    bytes32 public queueId; // The Switchboard Queue ID (Monad)
 
-    // Map roundId -> randomnessId
-    mapping(uint256 => bytes32) public roundToRandomnessId;
-    
-    // Map randomnessId -> roundId
+    // Mapping from randomnessId => roundId
     mapping(bytes32 => uint256) public randomnessIdToRound;
+    
+    // Mapping from roundId => completed
+    mapping(uint256 => bool) public roundComplete;
+    mapping(uint256 => uint8) public roundResult;
 
-    // Map roundId -> result
-    mapping(uint256 => uint8) public diceResult;
-    mapping(uint256 => bool) public fulfilled;
-
-    constructor(address _switchboard, bytes32 _queueId) {
-        switchboard = ISwitchboard(_switchboard);
-        queueId = _queueId;
+    constructor(address _switchboard, bytes32 _queueId) SwitchboardCallbackHandler(_switchboard) {
         owner = msg.sender;
+        queueId = _queueId;
     }
 
     modifier onlyOwner() {
@@ -44,70 +69,85 @@ contract DiceRoller {
         _;
     }
 
-    // 1. Request Randomness
+    /**
+     * @notice Checks if a round is complete
+     * @param roundId The ID of the round
+     */
+    function isRoundComplete(uint256 roundId) external view returns (bool) {
+        return roundComplete[roundId];
+    }
+
+    /**
+     * @notice Requests a dice roll (1-3) for a specific round.
+     * @param roundId The ID of the round (gameCode hash + round count, or just unique ID)
+     */
     function requestDiceRoll(uint256 roundId) external onlyOwner returns (bytes32) {
-        if (fulfilled[roundId]) revert AlreadyFulfilled(roundId);
-
-        // Create unique ID based on sender, block, and round
-        bytes32 randomnessId = keccak256(abi.encodePacked(msg.sender, block.timestamp, roundId));
+        if (roundComplete[roundId]) revert RoundAlreadyRolled();
         
-        roundToRandomnessId[roundId] = randomnessId;
-        randomnessIdToRound[randomnessId] = roundId;
+        // 1. Request randomness from Switchboard
+        // We use the current block timestamp + sender + roundId for uniqueness
+        // But Switchboard handles the prompt. 
+        // We effectively just call `requestRandomness`.
+        
+        // Note: In Callback pattern, we send the request to the router/switchboard
+        // bytes memory callback = abi.encodePacked(this.switchboardCallback.selector);
+        // But the abstract handler uses a specific interface.
+        
+        // Switchboard On-Demand `requestRandomness`:
+        // function requestRandomness(
+        //    bytes32 _queueId,
+        //    uint32 _callbackPid, // 0 usually for derived
+        //    bytes calldata _callbackParams, // We can pass roundId here!
+        //    address _callbackContract,
+        //    bytes4 _callbackFunctionId
+        // ) external payable returns (bytes32);
 
-        // Request from Switchboard
-        // minSettlementDelay = 5 seconds (adjust as needed)
-        switchboard.requestRandomness(randomnessId, address(this), queueId, 5);
+        // We'll pass the roundId in the params so we can decode it in the callback?
+        // OR we map the returned requestId to the roundId. Mapping is safer/standard.
 
-        emit DiceRequested(roundId, randomnessId);
-        return randomnessId;
+        bytes32 requestId = switchboard.requestRandomness(
+            queueId,
+            0, // _callbackPid (not used for simple callback)
+            new bytes(0), // _callbackParams
+            address(this), // _callbackContract
+            this.switchboardCallback.selector // _callbackFunctionId
+        );
+
+        randomnessIdToRound[requestId] = roundId;
+
+        emit DiceRequested(roundId, requestId);
+        return requestId;
     }
 
-    // 2. Resolve Randomness (Called by backend with proof from Crossbar)
-    // Note: The docs call this 'resolve' or 'settleRandomness' wrapper.
-    function resolveDiceRoll(bytes[] calldata updates) external payable {
-        // 1. Submit proofs to Switchboard
-        // 'updates' contains the encoded randomness from Crossbar
-        // This makes the randomness available via switchboard.getRandomness(id)
-        switchboard.updateFeeds(updates);
-
-        // We can't easily know WHICH randomnessId was just updated inside this generic call unless passed?
-        // Actually, updateFeeds updates the Oracle state. We still need to know which ID to read.
-        // Usually, the caller knows. But strictly speaking, we want to settle a SPECIFIC round.
-        // Let's pass the roundId or randomnessId to verify it settled.
-    }
-
-    // Revised Resolve Approach: 
-    // The Standard Pattern updates feeds AND reads the result in one go to ensure atomicity.
-    function resolveRound(uint256 roundId, bytes[] calldata updates) external payable {
-        if (fulfilled[roundId]) revert AlreadyFulfilled(roundId);
+    /**
+     * @notice Callback handler called by Switchboard
+     */
+    function onRandomnessReady(
+        bytes32 randomnessId,
+        uint256[] calldata randomness
+    ) internal override {
+        uint256 roundId = randomnessIdToRound[randomnessId];
         
-        bytes32 rId = roundToRandomnessId[roundId];
-        require(rId != bytes32(0), "Round not requested");
-
-        // Update Switchboard State
-        // This consumes value (fee) if required, though typically updateFeeds fee is paid here?
-        // Switchboard `settleRandomness` might be a better direct call if using that API?
-        // Docs > "Step 3: Setup Update Feed Handler ... function resolve(bytes[] calldata switchboardUpdateFeeds)"
-        // Inside: switchboard.updateFeeds(...); randomness = switchboard.getRandomness(id).result;
+        // Safety check: if this ID wasn't mapped, ignore (or revert)
+        // If we revert, switchboard might retry? Better to just return if invalid state.
+        if (roundId == 0 && randomnessIdToRound[bytes32(0)] != roundId) {
+             // It's possible roundId 0 is valid, but let's assume 1-based or handle 0 specifically
+        }
         
-        switchboard.updateFeeds{ value: msg.value }(updates);
+        if (roundComplete[roundId]) {
+            return; // Already handled (shouldn't happen with unique IDs)
+        }
 
-        Structs.RandomnessResult memory randomness = switchboard.getRandomness(rId).result;
+        // --- THE LOGIC ---
+        // Get the first random number
+        uint256 randomValue = randomness[0];
         
-        // Ensure it settled
-        if (randomness.settledAt == 0) revert RandomnessNotSettled();
+        // Modulo 3 to get 0, 1, 2. Add 1 to get 1, 2, 3.
+        uint8 result = uint8((randomValue % 3) + 1);
 
-        // Convert to 1-3
-        uint8 result = uint8((randomness.value % 3) + 1);
-
-        fulfilled[roundId] = true;
-        diceResult[roundId] = result;
+        roundResult[roundId] = result;
+        roundComplete[roundId] = true;
 
         emit DiceRolled(roundId, result);
-    }
-
-    // View
-    function getDiceResult(uint256 roundId) external view returns (bool isFulfilled, uint8 result) {
-        return (fulfilled[roundId], diceResult[roundId]);
     }
 }

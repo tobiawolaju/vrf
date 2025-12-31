@@ -51,16 +51,8 @@ export function checkGameEnd(gameState) {
     return playersWithCards.length === 0;
 }
 
-export function generateVRFRoll(gameState) {
-    const roll = crypto.randomInt(1, 4); // 1–3
-    const seed = `${Date.now()}-round-${gameState.round}`;
-    const proof = crypto
-        .createHash('sha256')
-        .update(`${seed}:${roll}`)
-        .digest('hex');
+// VRF Logic removed - migrated to Switchboard On-Chain
 
-    return { roll, seed, proof };
-}
 
 export function resolveRound(gameState, roll) {
     gameState.players.forEach(player => {
@@ -84,26 +76,9 @@ export function resolveRound(gameState, roll) {
 }
 
 export function performRoll(gameState) {
-    if (gameState.phase !== 'commit') return;
-
-    // increment FIRST — this is the round being resolved
-    gameState.round++;
-
-    const { roll, seed, proof } = generateVRFRoll(gameState);
-
-    gameState.lastRoll = roll;
-    gameState.lastSeed = seed;
-    gameState.lastProof = proof;
-
-    gameState.phase = 'resolve';
-    gameState.resolveDeadline = Date.now() + 5000;
-
-    resolveRound(gameState, roll);
-
-    // hard stop after round 5 or card exhaustion
-    if (gameState.round >= 5 || checkGameEnd(gameState)) {
-        gameState.phase = 'ended';
-    }
+    // Deprecated: Logic moved to server.js (on-chain trigger)
+    // We keep this function stub to prevent crashes if called by legacy checkTimeouts
+    return;
 }
 
 export function advanceRound(gameState) {

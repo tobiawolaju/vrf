@@ -1,7 +1,7 @@
 import React from 'react';
 import './RoundStatus.css';
 
-const RoundStatus = ({ round, phase, timeLeft, resolveTimeLeft, isRolling, lastRoll, currentUserCommitment }) => {
+const RoundStatus = ({ round, phase, timeLeft, resolveTimeLeft, isRolling, lastRoll, currentUserCommitment, lastRollTxHash }) => {
     return (
         <div className="top-center-info">
             <div className="round-badge">Round {round}/5</div>
@@ -24,6 +24,11 @@ const RoundStatus = ({ round, phase, timeLeft, resolveTimeLeft, isRolling, lastR
                         })()}
                     </div>
                     <span className="sub-text">Next round in {resolveTimeLeft}s...</span>
+                    {lastRollTxHash && (
+                        <a href={`https://testnet.monadexplorer.com/tx/${lastRollTxHash}`} target="_blank" rel="noreferrer" className="verify-link" style={{ fontSize: '0.8rem', color: '#666', textDecoration: 'none', marginTop: '5px', display: 'block' }}>
+                            Verify on Monad ↗
+                        </a>
+                    )}
                 </div>
             )}
         </div>
