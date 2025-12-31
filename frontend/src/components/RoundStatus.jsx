@@ -12,6 +12,12 @@ const RoundStatus = ({ round, phase, timeLeft, resolveTimeLeft, isRolling, lastR
                 </div>
             )}
 
+            {phase === 'rolling' && (
+                <div className="center-timer">
+                    <span className="timer-text">🎲 Requesting VRF...</span>
+                </div>
+            )}
+
             {phase === 'resolve' && !isRolling && (
                 <div className="vrf-section">
                     <div className="round-outcome">

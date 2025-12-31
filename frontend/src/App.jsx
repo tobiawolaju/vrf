@@ -81,7 +81,7 @@ function App() {
             if (gameState.phase === 'waiting' && typeof gameState.startDeadline === 'number') {
                 const remaining = Math.max(0, Math.ceil((gameState.startDeadline - now) / 1000));
                 setWaitTimeLeft(remaining);
-            } else if (gameState.phase === 'commit' && typeof gameState.commitDeadline === 'number') {
+            } else if ((gameState.phase === 'commit' || gameState.phase === 'rolling') && typeof gameState.commitDeadline === 'number') {
                 const remaining = Math.max(0, Math.ceil((gameState.commitDeadline - now) / 1000));
                 setTimeLeft(remaining);
             } else if (gameState.phase === 'resolve' && typeof gameState.resolveDeadline === 'number') {
@@ -100,24 +100,35 @@ function App() {
 
     // Dice Animation Logic
     useEffect(() => {
-        if (gameState?.phase === 'resolve' && gameState.lastRoll) {
+        if (gameState?.phase === 'rolling' || (gameState?.phase === 'resolve' && gameState.lastRoll)) {
             setIsRolling(true);
-            let shuffleCount = 0;
-            const maxShuffles = 45; // 4.5 seconds at 100ms interval
 
-            const shuffleInterval = setInterval(() => {
-                setVisualRoll(Math.floor(Math.random() * 3) + 1);
-                shuffleCount++;
+            // For 'rolling' phase, we just keep shuffling indefinitely or until phase changes
+            // For 'resolve' phase, we finish the shuffle and show the result
+            if (gameState.phase === 'resolve' && gameState.lastRoll) {
+                let shuffleCount = 0;
+                const maxShuffles = 45; // 4.5 seconds at 100ms interval
 
-                if (shuffleCount >= maxShuffles) {
-                    clearInterval(shuffleInterval);
-                    setVisualRoll(gameState.lastRoll);
-                    setIsRolling(false);
-                }
-            }, 100);
+                const shuffleInterval = setInterval(() => {
+                    setVisualRoll(Math.floor(Math.random() * 3) + 1);
+                    shuffleCount++;
 
-            return () => clearInterval(shuffleInterval);
-        } else if (gameState?.phase !== 'resolve') {
+                    if (shuffleCount >= maxShuffles) {
+                        clearInterval(shuffleInterval);
+                        setVisualRoll(gameState.lastRoll);
+                        setIsRolling(false);
+                    }
+                }, 100);
+
+                return () => clearInterval(shuffleInterval);
+            } else {
+                // Persistent shuffle for 'rolling' phase
+                const shuffleInterval = setInterval(() => {
+                    setVisualRoll(Math.floor(Math.random() * 3) + 1);
+                }, 100);
+                return () => clearInterval(shuffleInterval);
+            }
+        } else if (gameState?.phase !== 'resolve' && gameState?.phase !== 'rolling') {
             setIsRolling(false);
         }
     }, [gameState?.phase, gameState?.lastRoll]);

@@ -43,7 +43,7 @@ const Gameplay = ({
             />
 
             <div className="game-center">
-                {(gameState.phase === 'resolve' || isRolling) && (
+                {(gameState.phase === 'resolve' || gameState.phase === 'rolling' || isRolling) && (
                     <Dice3D
                         roll={visualRoll}
                         isRolling={isRolling}
