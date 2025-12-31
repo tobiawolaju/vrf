@@ -4,7 +4,6 @@ import { db } from './src/lib/store.js';
 import { initializeGame, generatePlayerId, getPublicState } from './src/lib/gameLogic.js';
 import { createWalletClient, http, publicActions, getContract, parseAbiItem } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { monadTestnet } from 'viem/chains';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -45,10 +44,29 @@ let contract = null;
 
 if (process.env.ADMIN_PRIVATE_KEY) {
     try {
+        // Define Monad Mainnet chain
+        const monadMainnet = {
+            id: 41454,
+            name: 'Monad Mainnet',
+            network: 'monad-mainnet',
+            nativeCurrency: {
+                decimals: 18,
+                name: 'Monad',
+                symbol: 'MON',
+            },
+            rpcUrls: {
+                default: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
+                public: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
+            },
+            blockExplorers: {
+                default: { name: 'Monad Explorer', url: 'https://monadexplorer.com' },
+            },
+        };
+
         const account = privateKeyToAccount(process.env.ADMIN_PRIVATE_KEY);
         adminWallet = createWalletClient({
             account,
-            chain: monadTestnet,
+            chain: monadMainnet,
             transport: http(),
         }).extend(publicActions);
 
