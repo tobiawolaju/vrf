@@ -6,7 +6,7 @@ const MONAD_MAINNET_RPC = process.env.MONAD_MAINNET_RPC_URL;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-    solidity: "0.8.19",
+    solidity: "0.8.24",
     networks: {
         monadMainnet: {
             url: MONAD_MAINNET_RPC || "",

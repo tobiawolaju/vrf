@@ -1,0 +1,50 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IRandomnessModule",
+  "sourceName": "contracts/DiceRoller.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_queueId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_callbackPid",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_callbackParams",
+          "type": "bytes"
+        },
+        {
+          "internalType": "address",
+          "name": "_callbackContract",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes4",
+          "name": "_callbackFunctionId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "requestRandomness",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

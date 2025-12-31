@@ -1,0 +1,47 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SwitchboardCallbackHandler",
+  "sourceName": "contracts/DiceRoller.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "SwitchboardCallbackCallerNotSwitchboard",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "switchboard",
+      "outputs": [
+        {
+          "internalType": "contract ISwitchboard",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "randomnessId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "randomness",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "switchboardCallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

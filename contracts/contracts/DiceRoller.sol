@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ISwitchboard} from "@switchboard-xyz/on-demand-solidity/ISwitchboard.sol";
+import {ISwitchboard} from "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol";
 
 // Abstract contract for handling callbacks
 abstract contract SwitchboardCallbackHandler {
@@ -35,6 +35,16 @@ abstract contract SwitchboardCallbackHandler {
         bytes32 randomnessId,
         uint256[] calldata randomness
     ) internal virtual;
+}
+
+interface IRandomnessModule {
+    function requestRandomness(
+        bytes32 _queueId,
+        uint32 _callbackPid,
+        bytes calldata _callbackParams,
+        address _callbackContract,
+        bytes4 _callbackFunctionId
+    ) external payable returns (bytes32);
 }
 
 contract DiceRoller is SwitchboardCallbackHandler {
@@ -105,7 +115,8 @@ contract DiceRoller is SwitchboardCallbackHandler {
         // We'll pass the roundId in the params so we can decode it in the callback?
         // OR we map the returned requestId to the roundId. Mapping is safer/standard.
 
-        bytes32 requestId = switchboard.requestRandomness(
+        // Request from Switchboard (Legacy V2 Interface for On-Chain Request)
+        bytes32 requestId = IRandomnessModule(address(switchboard)).requestRandomness(
             queueId,
             0, // _callbackPid (not used for simple callback)
             new bytes(0), // _callbackParams
