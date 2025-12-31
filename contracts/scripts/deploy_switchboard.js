@@ -4,10 +4,9 @@ async function main() {
     console.log("Deploying DiceRoller...");
 
     // --- CONFIGURATION ---
-    // Switchboard Address on Monad Testnet/Mainnet
-    // IMPORTANT: You MUST update these with actual values from Switchboard documentation
-    const SWITCHBOARD_ADDRESS = process.env.SWITCHBOARD_ADDRESS || "0x0000000000000000000000000000000000000000"; // Placeholder
-    const QUEUE_ID = process.env.QUEUE_ID || "0x0000000000000000000000000000000000000000000000000000000000000000"; // Placeholder
+    // Official Switchboard Oracle on Monad Mainnet
+    const SWITCHBOARD_ADDRESS = process.env.SWITCHBOARD_ADDRESS || "0x33A5066f65f66161bEb3f827A3e40fce7d7A2e6C";
+    const QUEUE_ID = process.env.QUEUE_ID || "0x0000000000000000000000000000000000000000000000000000000000000000"; // May not be needed for Monad
 
     if (!process.env.SWITCHBOARD_ADDRESS) {
         console.warn("⚠️  WARNING: SWITCHBOARD_ADDRESS not set in .env. Using placeholder.");
