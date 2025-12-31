@@ -1,36 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Montserrat:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Outfit:wght@300;400;600;800&display=swap');
 
 :root {
-  /* Colors - Aligned with Balatro purple/green theme */
-  --bg-color: #0d0216;
-  --surface-color: rgba(30, 10, 50, 0.6);
-  --surface-hover: rgba(50, 20, 80, 0.8);
-  --primary-color: #751ea8;
-  --primary-hover: #9b30d9;
-  --primary-shadow: #4d146d;
-  --success-color: #008111;
-  --success-hover: #00a816;
-  --success-shadow: #005a0c;
-  --accent-color: #fdcf00;
-  /* Gold for highlights */
+  /* Colors - Modern 'Cyber-Jungle' Theme */
+  --bg-color: #05010d;
+  --surface-color: rgba(13, 2, 22, 0.7);
+  --surface-hover: rgba(26, 4, 44, 0.85);
+
+  --primary-color: #ff00cc;
+  /* Neon Pink */
+  --primary-hover: #ff33d6;
+  --primary-shadow: #99007a;
+
+  --success-color: #00ff99;
+  /* Electric Green */
+  --success-hover: #33ffad;
+  --success-shadow: #00995c;
+
+  --accent-color: #ffcc00;
+  /* Cyber Gold */
+  --accent-hover: #ffdd33;
+
   --text-primary: #ffffff;
-  --text-secondary: #d1b3e6;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+
   --danger-color: #ff3e3e;
-  --border-color: rgba(255, 255, 255, 0.15);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(255, 0, 204, 0.3);
 
   /* Typography */
-  --font-game: 'Luckiest Guy', cursive;
-  --font-ui: 'Montserrat', sans-serif;
+  --font-game: 'Righteous', cursive;
+  --font-ui: 'Outfit', sans-serif;
 
   /* Radius */
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-lg: 32px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-neon: 0 0 20px rgba(117, 30, 168, 0.4);
-  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.6);
+  /* Shadows & Depth */
+  --shadow-neon: 0 0 30px var(--border-glow);
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.8);
+  --glass-effect: blur(20px) saturate(180%);
 }
 
 * {
@@ -45,7 +56,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-  line-height: 1.5;
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -99,77 +110,94 @@ p {
   font-weight: 500;
 }
 
-/* 3D PRESSABLE BUTTONS */
+/* 3D PRESSABLE BUTTONS - Modern Gaming Style */
 button {
   cursor: pointer;
   border: none;
   font-family: var(--font-game);
-  font-size: 1.05rem;
-  padding: 10px 24px;
+  font-size: 1rem;
+  padding: 14px 28px;
   border-radius: var(--radius-md);
-  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   outline: none;
   user-select: none;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  transition: 0.5s;
+}
+
+button:hover::after {
+  left: 100%;
 }
 
 button:active {
-  transform: translateY(4px);
-  box-shadow: none !important;
+  transform: translateY(2px) scale(0.98);
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
-  transform: none !important;
   filter: grayscale(1);
 }
 
 .btn-primary {
   background: var(--primary-color);
   color: white;
-  box-shadow: 0 6px 0 var(--primary-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 4px 0 var(--primary-shadow),
+    0 10px 25px rgba(255, 0, 204, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--primary-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 6px 0 var(--primary-shadow),
+    0 15px 30px rgba(255, 0, 204, 0.4);
 }
 
 .btn-secondary {
   background: var(--success-color);
-  color: white;
-  box-shadow: 0 6px 0 var(--success-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #05010d;
+  box-shadow:
+    0 4px 0 var(--success-shadow),
+    0 10px 25px rgba(0, 255, 153, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--success-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--success-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 6px 0 var(--success-shadow),
+    0 15px 30px rgba(0, 255, 153, 0.3);
 }
 
-.btn-danger {
-  background: var(--danger-color);
-  color: white;
-  box-shadow: 0 6px 0 #991b1b, 0 10px 20px rgba(0, 0, 0, 0.4);
-}
-
-/* Glassmorphism Overhaul (Now "Card" Aesthetic) */
+/* Glassmorphism 2.0 */
 .glass-card {
   background: var(--surface-color);
-  border: 3px solid var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 32px;
-  backdrop-filter: blur(15px);
+  padding: 40px;
+  backdrop-filter: var(--glass-effect);
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -178,11 +206,8 @@ button:disabled {
 .glass-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 60%);
   pointer-events: none;
 }
 

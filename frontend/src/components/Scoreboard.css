@@ -1,14 +1,14 @@
 .scoreboard-corner {
     position: absolute;
-    top: var(--spacing-md);
-    left: var(--spacing-md);
-    background: rgba(18, 18, 18, 0.8);
-    backdrop-filter: blur(12px);
+    top: 20px;
+    left: 20px;
+    background: var(--surface-color);
+    backdrop-filter: var(--glass-effect);
     padding: var(--spacing-md);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    min-width: 220px;
-    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    min-width: 240px;
+    box-shadow: var(--shadow-card);
     z-index: 10;
 }
 
