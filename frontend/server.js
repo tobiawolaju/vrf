@@ -108,39 +108,58 @@ if (process.env.ADMIN_PRIVATE_KEY) {
 
 async function executeOnChainRoll(gameCode, roundNumber) {
     if (!contract) {
-        console.warn("Blockchain not connected. Simulation Fallback.");
+        console.warn("❌ [VRF] Blockchain not connected. Simulation Fallback.");
         throw new Error("Blockchain not configured");
     }
 
     try {
+        // Use a consistent ID generation (Date.now() is fine, but log it clearly)
         const roundId = BigInt(Date.now());
 
         // Store map of roundId -> gameCode to resolve later
         global.pendingRolls = global.pendingRolls || new Map();
         global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
 
-        console.log(`🎲 [VRF] Requesting Roll for ${gameCode} (Round ${roundNumber}) - ID: ${roundId}`);
+        console.log(`🎲 [VRF] REQUESTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
 
         // 1. REQUEST
+        // We use wait for the transaction to be sent, but we handle the pull/submit in the background
         const reqTx = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   Request Tx: ${reqTx}`);
+        console.log(`   ✅ Request Sent! Tx: ${reqTx}`);
 
-        // 2. FETCH & SUBMIT (Acting as Switchboard Puller)
-        // In a hackathon demo, we handle the pulling and submitting autonomously.
-        // Wait for request to be mined first.
-        setTimeout(async () => {
+        // 2. FETCH & SUBMIT (Background Task)
+        // We don't await this so the API can return immediately
+        (async () => {
             try {
+                // Wait for transaction receipt to ensure it's on-chain
+                console.log(`   ⏳ Waiting for reach for Tx: ${reqTx}...`);
+                const receipt = await adminWallet.waitForTransactionReceipt({ hash: reqTx });
+                console.log(`   📦 Request Mined in block ${receipt.blockNumber}`);
+
                 console.log(`🔮 [VRF] Fetching randomness for ID: ${roundId}...`);
-                // Simulate pulling from Switchboard API
+                // Simulate pulling from Switchboard API (in production this would be an API call)
                 const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
 
                 console.log(`📡 [VRF] Submitting randomness to contract...`);
                 const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
-                console.log(`   Submit Tx: ${subTx}`);
+                console.log(`   ✅ Submit Sent! Tx: ${subTx}`);
+
+                await adminWallet.waitForTransactionReceipt({ hash: subTx });
+                console.log(`   🏁 Submit Mined!`);
             } catch (err) {
-                console.error("❌ Failed to fulfill VRF request:", err.message);
+                console.error("❌ [VRF] Failed to fulfill request in background:", err.message);
+                // If it fails, we might want to reset rollRequested after some time
+                setTimeout(async () => {
+                    const st = await db.getGame(gameCode);
+                    if (st && st.rollRequested && st.phase === 'rolling') {
+                        console.log(`🔄 [VRF] Resetting rollRequested for ${gameCode} due to background failure.`);
+                        st.rollRequested = false;
+                        st.phase = 'commit'; // Kick back to commit so it can retry
+                        await db.setGame(gameCode, st);
+                    }
+                }, 10000);
             }
-        }, 2000); // 2s delay for transaction propagation
+        })();
 
         return { txHash: reqTx, roundId: roundId.toString() };
     } catch (e) {
@@ -331,24 +350,26 @@ app.get('/api/state', async (req, res) => {
 
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
-        const publicState = getPublicState(gameState, playerId);
-
         // TRIGGER ON-CHAIN ROLL
-        // If the game logic (checkTimeouts) advanced the round or if we timed out, we might need a roll.
-        // Actually, checkTimeouts in gameLogic was determining passing of time.
-        // We should check here if we need to roll.
-
-        // If we are in 'commit' phase but deadline passed, we should have transitioned?
-        // Let's modify gameLogic to transition to 'rolling' or similar.
-        // For now, let's inject the trigger here:
+        // Refactored to occur BEFORE state object is built for returning, 
+        // and using a more robust state lock.
 
         if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline && !gameState.rollRequested) {
-            gameState.rollRequested = true; // Prevent double trigger
-            // Note: effectively we are in "rolling" state but we keep phase 'commit' or 'rolling' until event?
-            // Ideally we switch to 'rolling' phase.
+            console.log(`🚀 [GAME] Triggering Roll for ${gameCode}...`);
+            gameState.rollRequested = true;
             gameState.phase = 'rolling';
-            await executeOnChainRoll(gameCode, gameState.round + 1); // Round is 0-indexed? check gameLogic
+
+            // Save state IMMEDIATELY so other parallel polls don't re-trigger
+            await db.setGame(gameCode, gameState);
+
+            // Execute in background
+            executeOnChainRoll(gameCode, gameState.round + 1).catch(err => {
+                console.error(`❌ [GAME] Failed to initiate roll for ${gameCode}:`, err.message);
+                // We don't reset here immediately, executeOnChainRoll has its own retry/reset logic
+            });
         }
+
+        const publicState = getPublicState(gameState, playerId);
 
         // Check if game just ended and needs stats update
         if (publicState.phase === 'ended' && !gameState.statsUpdated) {
