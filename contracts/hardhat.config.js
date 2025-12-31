@@ -1,22 +1,16 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MONAD_MAINNET_RPC = process.env.MONAD_MAINNET_RPC_URL;
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-    solidity: "0.8.27",
+    solidity: "0.8.19",
     networks: {
-        monadTestnet: {
-            url: "https://testnet-rpc.monad.xyz",
-            chainId: 10143,
-            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-        },
         monadMainnet: {
-            url: "https://rpc-mainnet.monadinfra.com",
-            chainId: 143,
-            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+            url: MONAD_MAINNET_RPC || "",
+            accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
         },
-        // Fallback or local
-        hardhat: {
-        }
     },
 };
