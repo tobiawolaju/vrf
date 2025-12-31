@@ -9,72 +9,50 @@
 
 .setup-card {
     background: var(--surface-color);
-    backdrop-filter: var(--glass-effect);
-    border: 1px solid var(--border-color);
-    padding: 3.5rem;
+    backdrop-filter: blur(15px);
+    border: 3px solid var(--border-color);
+    padding: 3rem;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-card), var(--shadow-neon);
     width: 100%;
-    max-width: 550px;
+    max-width: 500px;
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
-    animation: gameEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: var(--spacing-xl);
+    animation: gameEnter 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67);
     position: relative;
     overflow: hidden;
 }
 
-/* Animated Border Glow */
-.setup-card::after {
+.setup-card::before {
     content: '';
     position: absolute;
-    inset: -2px;
-    background: conic-gradient(from 0deg,
-            transparent 0%,
-            var(--primary-color) 25%,
-            transparent 50%,
-            var(--success-color) 75%,
-            transparent 100%);
-    border-radius: inherit;
-    z-index: -1;
-    animation: rotateGlow 4s linear infinite;
-    opacity: 0.5;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .setup-card h1 {
-    font-size: 3.5rem;
+    font-size: 2.8rem;
     text-align: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-md);
     color: var(--text-primary);
-    background: linear-gradient(to bottom, #fff, #aaa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
-    letter-spacing: -1px;
-}
-
-@keyframes rotateGlow {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+    -webkit-text-fill-color: var(--text-primary);
+    filter: drop-shadow(0 4px 0 var(--primary-shadow));
 }
 
 @keyframes gameEnter {
     from {
         opacity: 0;
-        transform: translateY(100px) scale(0.9) rotateX(-20deg);
-        filter: blur(10px);
+        transform: translateY(60px) rotateX(-10deg);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0) scale(1) rotateX(0);
-        filter: blur(0);
+        transform: translateY(0) rotateX(0);
     }
 }
 

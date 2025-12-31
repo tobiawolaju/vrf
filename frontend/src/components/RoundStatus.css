@@ -14,33 +14,50 @@
 }
 
 .round-badge {
-    background: var(--surface-color);
-    backdrop-filter: var(--glass-effect);
-    color: var(--accent-color);
-    padding: 6px 16px;
-    border-radius: var(--radius-full);
-    font-size: 0.9rem;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 8px 24px;
+    border-radius: 4px;
     font-family: var(--font-game);
+    font-size: 1.4rem;
     text-transform: uppercase;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-neon);
-    letter-spacing: 1px;
+    box-shadow: -4px 4px 0px var(--primary-shadow);
+    transform: var(--crt-curve);
+    border: 2px solid #1a1a1a;
 }
 
 .timer-text {
-    font-size: 1.2rem;
     font-family: var(--font-game);
-    color: #fff;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    font-size: 2.5rem;
+    color: var(--accent-color);
+    text-shadow: 0 4px 0 var(--accent-shadow), 0 0 20px rgba(253, 207, 0, 0.3);
+    letter-spacing: 2px;
 }
 
 .outcome-text {
-    font-size: 3rem;
-    font-weight: 800;
+    font-size: 5rem;
+    font-family: var(--font-game);
     text-transform: uppercase;
-    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-shadow: 0 8px 0 rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);
+    animation: balatroPop 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    -webkit-text-stroke: 2px #1a1a1a;
+}
+
+@keyframes balatroPop {
+    0% {
+        transform: scale(0);
+        rotate: -10deg;
+    }
+
+    70% {
+        transform: scale(1.2);
+        rotate: 5deg;
+    }
+
+    100% {
+        transform: scale(1);
+        rotate: 0deg;
+    }
 }
 
 .outcome-text.win {

@@ -1,47 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Outfit:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Montserrat:wght@400;600;800&display=swap');
 
 :root {
-  /* Colors - Modern 'Cyber-Jungle' Theme */
-  --bg-color: #05010d;
-  --surface-color: rgba(13, 2, 22, 0.7);
-  --surface-hover: rgba(26, 4, 44, 0.85);
+  /* Balatro Signature Palette */
+  --bg-color: #0d0216;
+  --surface-color: rgba(20, 10, 40, 0.85);
+  --surface-hover: rgba(40, 20, 70, 0.95);
 
-  --primary-color: #ff00cc;
-  /* Neon Pink */
-  --primary-hover: #ff33d6;
-  --primary-shadow: #99007a;
+  --primary-color: #e81123;
+  /* Balatro Red */
+  --primary-hover: #ff2d3d;
+  --primary-shadow: #8B0000;
 
-  --success-color: #00ff99;
-  /* Electric Green */
-  --success-hover: #33ffad;
-  --success-shadow: #00995c;
+  --secondary-color: #0081bb;
+  /* Balatro Blue */
+  --secondary-hover: #00a1ea;
+  --secondary-shadow: #004c6e;
 
-  --accent-color: #ffcc00;
-  /* Cyber Gold */
-  --accent-hover: #ffdd33;
+  --success-color: #008111;
+  --success-hover: #00a816;
+  --success-shadow: #005a0c;
+
+  --accent-color: #fdcf00;
+  /* Gold */
+  --accent-shadow: #b08d00;
 
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.4);
-
+  --text-secondary: #ffb8b8;
   --danger-color: #ff3e3e;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-glow: rgba(255, 0, 204, 0.3);
+  --border-color: rgba(255, 255, 255, 0.25);
 
   /* Typography */
-  --font-game: 'Righteous', cursive;
-  --font-ui: 'Outfit', sans-serif;
+  --font-game: 'Luckiest Guy', cursive;
+  --font-ui: 'Montserrat', sans-serif;
 
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 32px;
-  --radius-full: 9999px;
-
-  /* Shadows & Depth */
-  --shadow-neon: 0 0 30px var(--border-glow);
-  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.8);
-  --glass-effect: blur(20px) saturate(180%);
+  /* Balatro Effects */
+  --crt-curve: perspective(1000px) rotateX(0.5deg) rotateY(-0.5deg);
+  --shadow-neon: 0 0 25px rgba(232, 11, 35, 0.5);
 }
 
 * {
@@ -56,7 +50,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-  line-height: 1.4;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -110,94 +104,77 @@ p {
   font-weight: 500;
 }
 
-/* 3D PRESSABLE BUTTONS - Modern Gaming Style */
+/* 3D PRESSABLE BUTTONS */
 button {
   cursor: pointer;
   border: none;
   font-family: var(--font-game);
-  font-size: 1rem;
-  padding: 14px 28px;
+  font-size: 1.05rem;
+  padding: 10px 24px;
   border-radius: var(--radius-md);
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   outline: none;
   user-select: none;
-  overflow: hidden;
-}
-
-button::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transform: rotate(45deg);
-  transition: 0.5s;
-}
-
-button:hover::after {
-  left: 100%;
 }
 
 button:active {
-  transform: translateY(2px) scale(0.98);
+  transform: translateY(4px);
+  box-shadow: none !important;
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
   filter: grayscale(1);
 }
 
 .btn-primary {
   background: var(--primary-color);
   color: white;
-  box-shadow:
-    0 4px 0 var(--primary-shadow),
-    0 10px 25px rgba(255, 0, 204, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 0 var(--primary-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 0 var(--primary-shadow),
-    0 15px 30px rgba(255, 0, 204, 0.4);
+  box-shadow: 0 8px 0 var(--primary-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .btn-secondary {
   background: var(--success-color);
-  color: #05010d;
-  box-shadow:
-    0 4px 0 var(--success-shadow),
-    0 10px 25px rgba(0, 255, 153, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 6px 0 var(--success-shadow), 0 10px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--success-hover);
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 0 var(--success-shadow),
-    0 15px 30px rgba(0, 255, 153, 0.3);
+  box-shadow: 0 8px 0 var(--success-shadow), 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Glassmorphism 2.0 */
+.btn-danger {
+  background: var(--danger-color);
+  color: white;
+  box-shadow: 0 6px 0 #991b1b, 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Glassmorphism Overhaul (Now "Card" Aesthetic) */
 .glass-card {
   background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  border: 3px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 40px;
-  backdrop-filter: var(--glass-effect);
+  padding: 32px;
+  backdrop-filter: blur(15px);
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -206,43 +183,95 @@ button:disabled {
 .glass-card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 60%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
   pointer-events: none;
 }
 
-/* Animations */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
+/* Balatro CRT & JUICE */
+.crt-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+  background-size: 100% 4px, 3px 100%;
+  opacity: 0.15;
+  animation: flicker 0.15s infinite;
+}
+
+.balatro-floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
   }
 
   50% {
-    transform: scale(1.05);
-    opacity: 1;
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 0.15;
+  }
+
+  5% {
+    opacity: 0.18;
+  }
+
+  10% {
+    opacity: 0.14;
+  }
+
+  15% {
+    opacity: 0.16;
+  }
+
+  20% {
+    opacity: 0.15;
   }
 
   100% {
-    transform: scale(1);
-    opacity: 0.8;
+    opacity: 0.15;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  100% {
+    transform: translateY(100%);
   }
+}
+
+.vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
 }
 
 .fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
 /* Inputs Overhaul */

@@ -286,6 +286,8 @@ function App() {
     return (
         <div className="app">
             <BalatroBackground />
+            <div className="crt-container" />
+            <div className="vignette" />
             {renderContent()}
         </div>
     );
