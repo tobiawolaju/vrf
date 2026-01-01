@@ -1,7 +1,7 @@
 .vote-tracker-container {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 20px;
     padding: 12px 18px;
     border-radius: 16px;
     display: flex;
@@ -23,12 +23,12 @@
 }
 
 .vote-status .count {
-    color: var(--primary-color, #ffffff);
+    color: #ffffff;
     font-size: 1.2rem;
 }
 
 .vote-status .label {
-    color: rgba(255, 255, 255, 0.7);
+    color: #ffffff;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 1px;

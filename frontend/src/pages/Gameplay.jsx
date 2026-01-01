@@ -75,11 +75,7 @@ const Gameplay = ({
                 lastRollTxHash={gameState.lastRollTxHash}
                 currentUserCommitment={gameState.currentPlayer?.commitment}
             />
-            {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
-                <div className="waiting-message">
-                    <p>Hand Locked</p>
-                </div>
-            )}
+
 
             <div className="game-center">
                 {(gameState.phase === 'resolve' || gameState.phase === 'rolling' || isRolling || debugRolling) && (
@@ -92,6 +88,12 @@ const Gameplay = ({
                 )}
 
             </div>
+
+            {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
+                <div className="waiting-message">
+                    <p>Hand Locked</p>
+                </div>
+            )}
 
             <PlayerHand
                 currentPlayer={currentPlayer}

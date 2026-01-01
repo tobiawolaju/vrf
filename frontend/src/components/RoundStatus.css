@@ -1,6 +1,6 @@
 .top-center-info {
     position: absolute;
-    top: var(--spacing-lg);
+    /* top: var(--spacing-lg); */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
