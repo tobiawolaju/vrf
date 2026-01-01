@@ -107,6 +107,52 @@ if (process.env.ADMIN_PRIVATE_KEY) {
     console.warn("⚠️ ADMIN_PRIVATE_KEY not set. Blockchain features disabled.");
 }
 
+async function rollDice(gameCode, roundNumber) {
+    if (!contract) {
+        throw new Error("Blockchain not configured");
+    }
+
+    try {
+        const roundId = BigInt(Date.now());
+
+        // Track this roll so the event listener can resolve the game state
+        global.pendingRolls = global.pendingRolls || new Map();
+        global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
+
+        console.log(`\n🎲 [rollDice] STARTING ON-CHAIN ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
+
+        // 1. REQUEST
+        console.log('   📡 1. Requesting dice roll on-chain...');
+        const reqTxHash = await contract.write.requestDiceRoll([roundId]);
+        console.log(`   ✅ Request Sent! Tx: ${reqTxHash}`);
+
+        // 2. WAIT FOR CONFIRMATION
+        console.log('   ⏳ 2. Waiting for request confirmation...');
+        await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
+
+        // 3. PULL & SUBMIT (Acting as Switchboard Puller)
+        console.log('   🔮 3. Pulling verified randomness (Simulating Switchboard API)...');
+        const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+        console.log(`   Fetched Randomness: ${mockRandomness}`);
+
+        console.log('   📡 4. Submitting verified randomness to contract...');
+        const submitTxHash = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
+        console.log(`   ✅ Submit Sent! Tx: ${submitTxHash}`);
+
+        // 4. WAIT FOR RESULT
+        console.log('   ⏳ 5. Waiting for submission confirmation...');
+        await adminWallet.waitForTransactionReceipt({ hash: submitTxHash });
+
+        const result = Number((BigInt(mockRandomness) % 3n) + 1n);
+        console.log(`   🎉 [rollDice] FINISHED! Result: ${result}\n`);
+
+        return { success: true, txHash: submitTxHash, result, roundId: roundId.toString() };
+    } catch (error) {
+        console.error("❌ rollDice Error:", error.message);
+        throw error;
+    }
+}
+
 async function executeOnChainRoll(gameCode, roundNumber) {
     if (!contract) {
         console.warn("❌ [VRF] Blockchain not connected. Simulation Fallback.");
@@ -114,34 +160,20 @@ async function executeOnChainRoll(gameCode, roundNumber) {
     }
 
     try {
-        // Use a consistent ID generation (Date.now() is fine, but log it clearly)
         const roundId = BigInt(Date.now());
-
-        // Store map of roundId -> gameCode to resolve later
         global.pendingRolls = global.pendingRolls || new Map();
         global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
 
         console.log(`🎲 [VRF] REQUESTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-
-        // 1. REQUEST
-        // We use wait for the transaction to be sent, but we handle the pull/submit in the background
         const reqTx = await contract.write.requestDiceRoll([roundId]);
         console.log(`   ✅ Request Sent! Tx: ${reqTx}`);
 
-        // 2. FETCH & SUBMIT (Background Task)
-        // We don't await this so the API can return immediately
         (async () => {
             try {
-                // Wait for transaction receipt to ensure it's on-chain
-                console.log(`   ⏳ Waiting for reach for Tx: ${reqTx}...`);
                 const receipt = await adminWallet.waitForTransactionReceipt({ hash: reqTx });
                 console.log(`   📦 Request Mined in block ${receipt.blockNumber}`);
 
-                console.log(`🔮 [VRF] Fetching randomness for ID: ${roundId}...`);
-                // Simulate pulling from Switchboard API (in production this would be an API call)
                 const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
-
-                console.log(`📡 [VRF] Submitting randomness to contract...`);
                 const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
                 console.log(`   ✅ Submit Sent! Tx: ${subTx}`);
 
@@ -149,13 +181,11 @@ async function executeOnChainRoll(gameCode, roundNumber) {
                 console.log(`   🏁 Submit Mined!`);
             } catch (err) {
                 console.error("❌ [VRF] Failed to fulfill request in background:", err.message);
-                // If it fails, we might want to reset rollRequested after some time
                 setTimeout(async () => {
                     const st = await db.getGame(gameCode);
                     if (st && st.rollRequested && st.phase === 'rolling') {
-                        console.log(`🔄 [VRF] Resetting rollRequested for ${gameCode} due to background failure.`);
                         st.rollRequested = false;
-                        st.phase = 'commit'; // Kick back to commit so it can retry
+                        st.phase = 'commit';
                         await db.setGame(gameCode, st);
                     }
                 }, 10000);
@@ -182,35 +212,19 @@ function setupContractListener() {
                 const txHash = log.transactionHash;
 
                 console.log(`⚡ Event: DiceRolled | ID: ${roundId} | Result: ${result}`);
-
-                // Find game
                 const pending = global.pendingRolls ? global.pendingRolls.get(roundId) : null;
 
                 if (pending) {
                     const { gameCode } = pending;
                     const gameState = await db.getGame(gameCode);
                     if (gameState) {
-                        // RESOLVE GAME
                         gameState.lastRoll = Number(result);
                         gameState.lastRollTxHash = txHash;
-                        gameState.round = pending.roundNumber; // Sync round number
-                        gameState.rollRequested = false;      // Reset flag
-
-                        // Apply Game Logic (Simplified here, usually in gameLogic.js or handleResolve)
-                        // Note: We need to trigger the resolution phase logic here.
-                        // Assuming we have a 'resolveRound(gameState)' function?
-                        // We likely need to import logic to calculate winners.
-                        // For now, let's just save the roll and let the next poll/tick handle it?
-                        // Or better, actively resolve it.
-
-                        // Let's assume there is a resolve function or we do it here.
-                        // The prompt says "resolves rounds using on-chain results".
-                        // We'll update state and let frontend poll it.
-
+                        gameState.round = pending.roundNumber;
+                        gameState.rollRequested = false;
                         gameState.phase = 'resolve';
-                        gameState.resolveDeadline = Date.now() + 5000; // 5s to show result
+                        gameState.resolveDeadline = Date.now() + 5000;
 
-                        // Update player scores
                         gameState.players.forEach(p => {
                             const commitment = gameState.commitments[p.id];
                             if (commitment && commitment.card === gameState.lastRoll) {
@@ -221,7 +235,6 @@ function setupContractListener() {
                             }
                         });
 
-                        // Clean up
                         global.pendingRolls.delete(roundId);
                         await db.setGame(gameCode, gameState);
                     }
@@ -231,7 +244,7 @@ function setupContractListener() {
     });
 }
 
-// --- API ROUTES (Mimicking Vercel logic) ---
+// --- API ROUTES ---
 
 app.post('/api/create', async (req, res) => {
     try {
@@ -245,9 +258,6 @@ app.post('/api/create', async (req, res) => {
     }
 });
 
-
-
-// Capture twitter handle in join
 app.post('/api/join', async (req, res) => {
     try {
         const { gameCode, playerName, avatar, privyId, twitterHandle } = req.body;
@@ -258,43 +268,31 @@ app.post('/api/join', async (req, res) => {
             return res.status(400).json({ error: 'you got locked out, match already in progress' });
         }
 
-        let playerId;
-        let newPlayer;
-
-        // Check if player already in game (re-join)
-        const existingPlayer = privyId ? gameState.players.find(p => p.id === privyId) : null;
+        let playerId = privyId || generatePlayerId();
+        const existingPlayer = gameState.players.find(p => p.id === playerId);
 
         if (existingPlayer) {
-            playerId = existingPlayer.id;
             existingPlayer.connected = true;
             if (avatar) existingPlayer.avatar = avatar;
             if (playerName) existingPlayer.name = playerName;
-            // Update handle if it wasn't there or changed
             if (twitterHandle) existingPlayer.twitterHandle = twitterHandle;
 
             await db.setGame(gameCode, gameState);
-
-            res.json({
+            return res.json({
                 success: true,
                 playerId,
                 playerNumber: existingPlayer.playerNumber,
                 playerName: existingPlayer.name,
                 gameState: getPublicState(gameState, playerId)
             });
-            return;
         }
 
-        playerId = privyId || generatePlayerId();
-        newPlayer = {
+        const newPlayer = {
             id: playerId,
             playerNumber: gameState.players.length,
             name: playerName || `Player ${gameState.players.length + 1}`,
             twitterHandle: twitterHandle || null,
-            cards: [
-                { value: 1, isBurned: false },
-                { value: 2, isBurned: false },
-                { value: 3, isBurned: false }
-            ],
+            cards: [{ value: 1, isBurned: false }, { value: 2, isBurned: false }, { value: 3, isBurned: false }],
             credits: 0,
             firstCorrectRound: null,
             connected: true,
@@ -351,25 +349,16 @@ app.get('/api/state', async (req, res) => {
 
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
-        // TRIGGER ON-CHAIN ROLL
-        // Refactored to occur BEFORE state object is built for returning, 
-        // and using a more robust state lock.
-
         if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline && !gameState.rollRequested) {
             console.log(`🚀 [GAME] Triggering Roll for ${gameCode}...`);
             gameState.rollRequested = true;
             gameState.phase = 'rolling';
-
-            // Save state IMMEDIATELY so other parallel polls don't re-trigger
             await db.setGame(gameCode, gameState);
 
-            // Execute in background
             executeOnChainRoll(gameCode, gameState.round).catch(async err => {
                 console.error(`❌ [GAME] Failed to initiate roll for ${gameCode}:`, err.message);
-                // Reset state so it can retry on next poll if the TX failed to even send
                 const st = await db.getGame(gameCode);
                 if (st && st.rollRequested && st.phase === 'rolling') {
-                    console.log(`🔄 [GAME] Resetting state for ${gameCode} due to immediate failure.`);
                     st.rollRequested = false;
                     st.phase = 'commit';
                     await db.setGame(gameCode, st);
@@ -379,20 +368,15 @@ app.get('/api/state', async (req, res) => {
 
         const publicState = getPublicState(gameState, playerId);
 
-        // Check if game just ended and needs stats update
         if (publicState.phase === 'ended' && !gameState.statsUpdated) {
             const winner = publicState.winner;
             if (winner) {
-                // Determine winner ID from public state object or find in storage
-                // publicState.winner is the player object
                 await db.updateGameStats(gameState, winner.id);
                 gameState.statsUpdated = true;
             }
         }
 
-        // Save back any auto-updates (timeouts, stats flags)
         await db.setGame(gameCode, gameState);
-
         res.json(publicState);
     } catch (e) {
         console.error(e);
@@ -417,21 +401,8 @@ app.post('/api/debug-roll', async (req, res) => {
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
         console.log(`🛠️ [DEBUG] Manual Roll Triggered for ${gameCode}`);
-
-        const { txHash } = await executeOnChainRoll(gameCode, gameState.round || 1);
-
-        // Wait for result (max 20s)
-        let result = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 1000));
-            const st = await db.getGame(gameCode);
-            if (st.lastRollTxHash === txHash) {
-                result = st.lastRoll;
-                break;
-            }
-        }
-
-        res.json({ success: true, txHash, result });
+        const result = await rollDice(gameCode, gameState.round || 1);
+        res.json(result);
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
