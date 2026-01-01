@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import cors from 'cors';
 import { db } from './src/lib/store.js';
 import { initializeGame, generatePlayerId, getPublicState } from './src/lib/gameLogic.js';
