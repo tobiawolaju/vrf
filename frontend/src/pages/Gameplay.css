@@ -22,14 +22,11 @@
 .waiting-message {
     font-family: var(--font-game);
     color: var(--accent-color);
-    font-size: 0.3rem;
-    letter-spacing: 1px;
+    font-size: 2.5rem;
+    letter-spacing: 2px;
     text-shadow: 0 4px 0 var(--primary-shadow);
     animation: bigPulse 2s infinite;
 }
-
-
-
 
 @keyframes bigPulse {
     0% {
@@ -73,6 +70,6 @@
     }
 
     .waiting-message {
-        font-size: .3rem;
+        font-size: 1.8rem;
     }
 }
