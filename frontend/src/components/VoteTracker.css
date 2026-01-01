@@ -1,6 +1,6 @@
 .vote-tracker-container {
     position: fixed;
-    bottom: 20px;
+    top: 20px;
     right: 20px;
     background: rgba(20, 20, 25, 0.85);
     backdrop-filter: blur(12px);
