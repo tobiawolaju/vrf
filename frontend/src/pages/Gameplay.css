@@ -22,8 +22,8 @@
 .waiting-message {
     font-family: var(--font-game);
     color: var(--accent-color);
-    font-size: 0.5rem;
-    letter-spacing: 2px;
+    font-size: 0.3rem;
+    letter-spacing: 1px;
     text-shadow: 0 4px 0 var(--primary-shadow);
     animation: bigPulse 2s infinite;
 }
