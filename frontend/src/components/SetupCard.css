@@ -24,6 +24,20 @@
     overflow: hidden;
 }
 
+.setup-card.wide-card {
+    max-width: 900px;
+    padding: 2.5rem;
+}
+
+.btn-back-fixed {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    z-index: 1000 !important;
+    background: var(--success-color) !important;
+    /* Standard secondary blue/green */
+}
+
 .setup-card::before {
     content: '';
     position: absolute;

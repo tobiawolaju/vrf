@@ -1,4 +1,5 @@
 import React from 'react';
+import SetupCard from '../components/SetupCard';
 import './Deck.css';
 
 const rarities = [
@@ -15,12 +16,7 @@ const Deck = ({ setView }) => {
     const stackLevels = Array.from({ length: 10 }, (_, i) => i);
 
     return (
-        <div className="deck-page">
-            <div className="deck-header balatro-floating">
-                <h1>Card Collection</h1>
-                <p>Manage and view your stored card stacks</p>
-            </div>
-
+        <SetupCard title="Card Collection" onBack={() => setView('home')} className="wide-card deck-setup-card">
             <div className="stacks-grid">
                 {rarities.map((rarity) => (
                     <div key={rarity.id} className={`card-stack-container ${rarity.class}`}>
@@ -58,11 +54,7 @@ const Deck = ({ setView }) => {
                     </div>
                 ))}
             </div>
-
-            <button className="btn-back" onClick={() => setView('home')}>
-                ← Back to Lobby
-            </button>
-        </div>
+        </SetupCard>
     );
 };
 

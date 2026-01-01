@@ -1,57 +1,17 @@
-.leaderboard-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 20px;
+.leaderboard-setup-card .leaderboard-list {
+    margin-top: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
-.leaderboard-card {
-    background: rgba(0, 0, 0, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    width: 100%;
-    max-width: 600px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
+.leaderboard-setup-card .leaderboard-list::-webkit-scrollbar {
+    width: 6px;
 }
 
-.leaderboard-header {
-    display: flex;
-    align-items: center;
-    position: relative;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 1rem;
-}
-
-.btn-back {
-    background: none;
-    border: none;
-    color: #aaa;
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    position: absolute;
-    left: 0;
-}
-
-.btn-back:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.leaderboard-header h1 {
-    width: 100%;
-    text-align: center;
-    font-family: 'Righteous', cursive;
-    color: var(--accent-color, #ffd700);
-    margin: 0;
-    font-size: 2rem;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+.leaderboard-setup-card .leaderboard-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
 }
 
 .leaderboard-list {
@@ -82,10 +42,6 @@
     text-transform: uppercase;
     font-size: 0.8rem;
     letter-spacing: 1px;
-}
-
-.leaderboard-row.header:hover {
-    transform: none;
 }
 
 .rank {

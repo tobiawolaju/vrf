@@ -1,32 +1,5 @@
-.deck-page {
-    width: 100%;
-    min-height: 100vh;
-    padding: 40px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: white;
-    box-sizing: border-box;
-}
-
-.deck-header {
-    text-align: center;
-    margin-bottom: 50px;
-}
-
-.deck-header h1 {
-    font-size: 3rem;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    color: var(--primary-color);
-    text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
-}
-
-.deck-header p {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    margin-top: 10px;
+.deck-setup-card .stacks-grid {
+    margin-top: 20px;
 }
 
 .stacks-grid {
@@ -148,22 +121,6 @@
     font-family: 'Courier New', Courier, monospace;
 }
 
-.btn-back {
-    margin-top: 50px;
-    padding: 12px 30px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: all 0.2s;
-}
-
-.btn-back:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-}
 
 @media (max-width: 768px) {
     .stacks-grid {

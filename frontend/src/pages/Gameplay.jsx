@@ -56,12 +56,18 @@ const Gameplay = ({
 
     return (
         <div className="gameplay-container">
-            <VoteTracker
-                gameState={gameState}
-                debugRolling={debugRolling}
-                setDebugRolling={setDebugRolling}
-                triggerVRF={triggerVRF}
-            />
+
+
+            {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
+                <VoteTracker
+                    gameState={gameState}
+                    debugRolling={debugRolling}
+                    setDebugRolling={setDebugRolling}
+                    triggerVRF={triggerVRF}
+                />
+            )}
+
+
 
             <Scoreboard players={gameState.players} />
 
@@ -89,11 +95,6 @@ const Gameplay = ({
 
             </div>
 
-            {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
-                <div className="waiting-message">
-                    <p>Hand Locked</p>
-                </div>
-            )}
 
             <PlayerHand
                 currentPlayer={currentPlayer}
