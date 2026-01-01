@@ -149,6 +149,13 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                         >
                             🏆 Leaderboard
                         </button>
+                        <button
+                            className="btn-secondary"
+                            style={{ marginTop: '0', background: 'rgba(0, 255, 255, 0.1)', color: '#00ffff', border: '1px solid rgba(0, 255, 255, 0.3)' }}
+                            onClick={() => setView('deck')}
+                        >
+                            🎴 Deck
+                        </button>
                         <div className="divider" style={{
                             height: '1px',
                             background: 'rgba(255,255,255,0.1)',

@@ -8,6 +8,7 @@ import JoinGame from './pages/JoinGame';
 import WaitingRoom from './pages/WaitingRoom';
 import Gameplay from './pages/Gameplay';
 import Leaderboard from './pages/Leaderboard';
+import Deck from './pages/Deck';
 import BalatroBackground from './components/BalatroBackground';
 
 const API_BASE = '/api';
@@ -226,6 +227,10 @@ function App() {
     const renderContent = () => {
         if (view === 'leaderboard') {
             return <Leaderboard setView={setView} />;
+        }
+
+        if (view === 'deck') {
+            return <Deck setView={setView} />;
         }
 
         if (view === 'home') {
