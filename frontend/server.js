@@ -3,8 +3,7 @@ import crypto from 'crypto';
 import cors from 'cors';
 import { db } from './src/lib/store.js';
 import { initializeGame, generatePlayerId, getPublicState } from './src/lib/gameLogic.js';
-import { createWalletClient, http, publicActions, getContract, parseAbiItem } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { getVRFConfig, rollDice, executeOnChainRoll as vrf_executeOnChainRoll } from './src/lib/vrf.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,186 +16,19 @@ app.use(express.json());
 
 // --- BLOCKCHAIN CONFIG ---
 
-// Comprehensive ABI for Switchboard On-Demand Flow
-const DICEROLLER_ABI = [
-    {
-        "type": "function",
-        "name": "requestDiceRoll",
-        "inputs": [{ "name": "roundId", "type": "uint256" }],
-        "outputs": [{ "name": "", "type": "uint256" }],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "submitVerifiedRoll",
-        "inputs": [
-            { "name": "roundId", "type": "uint256" },
-            { "name": "randomness", "type": "bytes32" }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "event",
-        "name": "DiceRequested",
-        "inputs": [
-            { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "timestamp", "type": "uint256", "indexed": false }
-        ],
-        "anonymous": false
-    },
-    {
-        "type": "event",
-        "name": "DiceRolled",
-        "inputs": [
-            { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "result", "type": "uint8", "indexed": false },
-            { "name": "randomness", "type": "bytes32", "indexed": false }
-        ],
-        "anonymous": false
-    }
-];
+const vrfConfig = getVRFConfig();
+const contract = vrfConfig?.contract;
+const adminWallet = vrfConfig?.adminWallet;
 
-const CONTRACT_ADDRESS = process.env.DICEROLLER_ADDRESS || "0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea";
-
-// Admin Wallet (The Backend Relayer)
-let adminWallet = null;
-let contract = null;
-
-if (process.env.ADMIN_PRIVATE_KEY) {
-    try {
-        // Define Monad Mainnet chain
-        const monadMainnet = {
-            id: 143,
-            name: 'Monad Mainnet',
-            network: 'monad-mainnet',
-            nativeCurrency: {
-                decimals: 18,
-                name: 'Monad',
-                symbol: 'MON',
-            },
-            rpcUrls: {
-                default: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
-                public: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
-            },
-            blockExplorers: {
-                default: { name: 'Monad Explorer', url: 'https://monadexplorer.com' },
-            },
-        };
-
-        const account = privateKeyToAccount(process.env.ADMIN_PRIVATE_KEY);
-        adminWallet = createWalletClient({
-            account,
-            chain: monadMainnet,
-            transport: http(),
-        }).extend(publicActions);
-
-        console.log(`🔗 Connected to Monad as ${account.address}`);
-
-        contract = getContract({
-            address: CONTRACT_ADDRESS,
-            abi: DICEROLLER_ABI,
-            client: adminWallet
-        });
-
-        setupContractListener();
-    } catch (e) {
-        console.error("❌ Failed to setup blockchain connection:", e.message);
-    }
+if (vrfConfig) {
+    console.log(`🔗 Connected to Monad as ${adminWallet.account.address}`);
+    setupContractListener();
 } else {
-    console.warn("⚠️ ADMIN_PRIVATE_KEY not set. Blockchain features disabled.");
-}
-
-async function rollDice(gameCode, roundNumber) {
-    if (!contract) {
-        throw new Error("Blockchain not configured");
-    }
-
-    try {
-        const roundId = BigInt(Date.now());
-
-        // Track this roll so the event listener can resolve the game state
-        global.pendingRolls = global.pendingRolls || new Map();
-        global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
-
-        console.log(`\n🎲 [rollDice] STARTING ON-CHAIN ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-
-        // 1. REQUEST
-        console.log('   📡 1. Requesting dice roll on-chain...');
-        const reqTxHash = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   ✅ Request Sent! Tx: ${reqTxHash}`);
-
-        // 2. WAIT FOR CONFIRMATION
-        console.log('   ⏳ 2. Waiting for request confirmation...');
-        await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
-
-        // 3. PULL & SUBMIT (Acting as Switchboard Puller)
-        console.log('   🔮 3. Pulling verified randomness (Simulating Switchboard API)...');
-        const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
-        console.log(`   Fetched Randomness: ${mockRandomness}`);
-
-        console.log('   📡 4. Submitting verified randomness to contract...');
-        const submitTxHash = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
-        console.log(`   ✅ Submit Sent! Tx: ${submitTxHash}`);
-
-        // 4. WAIT FOR RESULT
-        console.log('   ⏳ 5. Waiting for submission confirmation...');
-        await adminWallet.waitForTransactionReceipt({ hash: submitTxHash });
-
-        const result = Number((BigInt(mockRandomness) % 3n) + 1n);
-        console.log(`   🎉 [rollDice] FINISHED! Result: ${result}\n`);
-
-        return { success: true, txHash: submitTxHash, result, roundId: roundId.toString() };
-    } catch (error) {
-        console.error("❌ rollDice Error:", error.message);
-        throw error;
-    }
+    console.warn("⚠️ ADMIN_PRIVATE_KEY not set or VRF setup failed. Blockchain features disabled.");
 }
 
 async function executeOnChainRoll(gameCode, roundNumber) {
-    if (!contract) {
-        console.warn("❌ [VRF] Blockchain not connected. Simulation Fallback.");
-        throw new Error("Blockchain not configured");
-    }
-
-    try {
-        const roundId = BigInt(Date.now());
-        global.pendingRolls = global.pendingRolls || new Map();
-        global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
-
-        console.log(`🎲 [VRF] REQUESTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-        const reqTx = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   ✅ Request Sent! Tx: ${reqTx}`);
-
-        (async () => {
-            try {
-                const receipt = await adminWallet.waitForTransactionReceipt({ hash: reqTx });
-                console.log(`   📦 Request Mined in block ${receipt.blockNumber}`);
-
-                const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
-                const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
-                console.log(`   ✅ Submit Sent! Tx: ${subTx}`);
-
-                await adminWallet.waitForTransactionReceipt({ hash: subTx });
-                console.log(`   🏁 Submit Mined!`);
-            } catch (err) {
-                console.error("❌ [VRF] Failed to fulfill request in background:", err.message);
-                setTimeout(async () => {
-                    const st = await db.getGame(gameCode);
-                    if (st && st.rollRequested && st.phase === 'rolling') {
-                        st.rollRequested = false;
-                        st.phase = 'commit';
-                        await db.setGame(gameCode, st);
-                    }
-                }, 10000);
-            }
-        })();
-
-        return { txHash: reqTx, roundId: roundId.toString() };
-    } catch (e) {
-        console.error("❌ executeOnChainRoll Error:", e.message);
-        throw e;
-    }
+    return await vrf_executeOnChainRoll(gameCode, roundNumber, db);
 }
 
 function setupContractListener() {
