@@ -3,7 +3,6 @@
     top: 20px;
     right: 20px;
     background: rgba(20, 20, 25, 0);
-    backdrop-filter: blur(12px);
     padding: 12px 18px;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0);
@@ -16,10 +15,7 @@
     transition: all 0.3s ease;
 }
 
-.vote-tracker-container:hover {
-    background: rgba(30, 30, 40, 0);
-    border-color: var(--primary-color, #ff00ff00);
-}
+.vote-tracker-container:hover {}
 
 .vote-status {
     display: flex;
