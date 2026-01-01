@@ -19,7 +19,7 @@
     padding: 8px 24px;
     border-radius: 4px;
     font-family: var(--font-game);
-    font-size: 0.7rem;
+    font-size: 1.4rem;
     text-transform: uppercase;
     box-shadow: -4px 4px 0px var(--primary-shadow);
     transform: var(--crt-curve);
@@ -28,14 +28,14 @@
 
 .timer-text {
     font-family: var(--font-game);
-    font-size: 1.5rem;
+    font-size: 2.5rem;
     color: var(--accent-color);
     text-shadow: 0 4px 0 var(--accent-shadow), 0 0 20px rgba(253, 207, 0, 0.3);
     letter-spacing: 2px;
 }
 
 .outcome-text {
-    font-size: 2rem;
+    font-size: 5rem;
     font-family: var(--font-game);
     text-transform: uppercase;
     text-shadow: 0 8px 0 rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);

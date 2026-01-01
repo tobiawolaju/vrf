@@ -70,7 +70,7 @@
 @media (max-width: 768px) {
     .scoreboard-corner {
         top: 50px;
-        left: var(--spacing-md);
+        left: 20px;
         width: auto;
         padding: var(--spacing-sm);
         padding-top: calc(10px + var(--spacing-sm));
