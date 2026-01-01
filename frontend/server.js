@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import cors from 'cors';
 import { db } from './src/lib/store.js';
-import { initializeGame, generatePlayerId, getPublicState } from './src/lib/gameLogic.js';
+import { initializeGame, generatePlayerId, getPublicState, resolveRound } from './src/lib/gameLogic.js';
 import { getVRFConfig, rollDice, executeOnChainRoll as vrf_executeOnChainRoll } from './src/lib/vrf.js';
 import dotenv from 'dotenv';
 
@@ -50,23 +50,7 @@ function setupContractListener() {
                     const { gameCode } = pending;
                     const gameState = await db.getGame(gameCode);
                     if (gameState) {
-                        gameState.lastRoll = Number(result);
-                        gameState.lastRollTxHash = txHash;
-                        gameState.round = pending.roundNumber;
-                        gameState.rollRequested = false;
-                        gameState.phase = 'resolve';
-                        gameState.resolveDeadline = Date.now() + 5000;
-
-                        gameState.players.forEach(p => {
-                            const commitment = gameState.commitments[p.id];
-                            if (commitment && commitment.card === gameState.lastRoll) {
-                                p.credits += 1;
-                            } else if (commitment && !commitment.skip) {
-                                const cardIdx = p.cards.findIndex(c => c.value === commitment.card && !c.isBurned);
-                                if (cardIdx > -1) p.cards[cardIdx].isBurned = true;
-                            }
-                        });
-
+                        resolveRound(gameState, result, txHash);
                         global.pendingRolls.delete(roundId);
                         await db.setGame(gameCode, gameState);
                     }

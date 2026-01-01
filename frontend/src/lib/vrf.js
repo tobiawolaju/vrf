@@ -1,5 +1,6 @@
 import { createWalletClient, http, publicActions, getContract } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { resolveRound } from './gameLogic.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
@@ -122,8 +123,16 @@ export async function executeOnChainRoll(gameCode, roundNumber, db) {
                 const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
                 console.log(`   ✅ Submit Sent! Tx: ${subTx}`);
 
-                await adminWallet.waitForTransactionReceipt({ hash: subTx });
-                console.log(`   🏁 Submit Mined!`);
+                const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
+                console.log(`   🏁 Submit Mined! Result: ${resultValue}`);
+
+                // RESOLVE STATE IN DB
+                const st = await db.getGame(gameCode);
+                if (st) {
+                    resolveRound(st, resultValue, subTx);
+                    await db.setGame(gameCode, st);
+                    console.log(`   ✅ Game ${gameCode} resolved successfully in background.`);
+                }
             } catch (err) {
                 console.error("❌ [VRF] Background Execution Error:", err.message);
                 // Reset state on failure so it can retry
@@ -179,10 +188,17 @@ export async function rollDice(gameCode, roundNumber, db) {
         // 4. WAIT FOR CONFIRMATION
         await adminWallet.waitForTransactionReceipt({ hash: submitTxHash });
 
-        const result = Number((BigInt(mockRandomness) % 3n) + 1n);
-        console.log(`   🎉 Finished! Result: ${result}\n`);
+        const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
+        console.log(`   🎉 Finished! Result: ${resultValue}\n`);
 
-        return { success: true, txHash: submitTxHash, result, roundId: roundId.toString() };
+        // RESOLVE STATE IN DB (Ensuring debug roll also finishes the game round)
+        const st = await db.getGame(gameCode);
+        if (st) {
+            resolveRound(st, resultValue, submitTxHash);
+            await db.setGame(gameCode, st);
+        }
+
+        return { success: true, txHash: submitTxHash, result: resultValue, roundId: roundId.toString() };
     } catch (error) {
         console.error("❌ rollDice Error:", error.message);
         throw error;

@@ -54,7 +54,16 @@ export function checkGameEnd(gameState) {
 // VRF Logic removed - migrated to Switchboard On-Chain
 
 
-export function resolveRound(gameState, roll) {
+/**
+ * Resolves a round, updating scores, burning cards, and advancing phase.
+ */
+export function resolveRound(gameState, roll, txHash) {
+    gameState.lastRoll = Number(roll);
+    gameState.lastRollTxHash = txHash || null;
+    gameState.rollRequested = false;
+    gameState.phase = 'resolve';
+    gameState.resolveDeadline = Date.now() + 5000; // 5s to show result
+
     gameState.players.forEach(player => {
         const commitment = gameState.commitments[player.id];
         if (!commitment || commitment.skip) return;
