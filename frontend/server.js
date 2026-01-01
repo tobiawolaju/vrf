@@ -409,6 +409,34 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
+app.post('/api/debug-roll', async (req, res) => {
+    try {
+        const { gameCode } = req.body;
+        const gameState = await db.getGame(gameCode);
+        if (!gameState) return res.status(404).json({ error: 'Game not found' });
+
+        console.log(`🛠️ [DEBUG] Manual Roll Triggered for ${gameCode}`);
+
+        const { txHash } = await executeOnChainRoll(gameCode, gameState.round || 1);
+
+        // Wait for result (max 20s)
+        let result = null;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const st = await db.getGame(gameCode);
+            if (st.lastRollTxHash === txHash) {
+                result = st.lastRoll;
+                break;
+            }
+        }
+
+        res.json({ success: true, txHash, result });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🎲 Local Dev Server running on http://localhost:${PORT}`);
     console.log(`   (Mimicking Vercel Serverless environment)`);
