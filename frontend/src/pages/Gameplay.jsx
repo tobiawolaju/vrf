@@ -4,6 +4,7 @@ import Dice3D from '../components/Dice3D';
 import PlayerHand from '../components/PlayerHand';
 import RoundStatus from '../components/RoundStatus';
 import EndGameOverlay from '../components/EndGameOverlay';
+import VoteTracker from '../components/VoteTracker';
 import './Gameplay.css';
 
 const Gameplay = ({
@@ -55,22 +56,12 @@ const Gameplay = ({
 
     return (
         <div className="gameplay-container">
-
-            <div className="vote-tracker-corner">
-                {gameState.players.filter(p => p.hasCommitted).length}/{gameState.players.length} voted
-                <button
-                    onClick={() => setDebugRolling(!debugRolling)}
-                    style={{ marginLeft: '10px', padding: '5px', fontSize: '0.7rem', opacity: 0.5 }}
-                >
-                    {debugRolling ? 'Stop Dice' : 'Test Dice'}
-                </button>
-                <button
-                    onClick={triggerVRF}
-                    style={{ marginLeft: '5px', padding: '5px', fontSize: '0.7rem', opacity: 0.5, border: '1px solid #f0f', color: '#f0f' }}
-                >
-                    On-Chain Roll
-                </button>
-            </div>
+            <VoteTracker
+                gameState={gameState}
+                debugRolling={debugRolling}
+                setDebugRolling={setDebugRolling}
+                triggerVRF={triggerVRF}
+            />
 
             <Scoreboard players={gameState.players} />
 

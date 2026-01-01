@@ -8,40 +8,6 @@
     font-family: var(--font-ui);
 }
 
-/* Floating UI Elements (Corners) */
-.gameplay-container .vote-tracker-corner {
-    position: absolute;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
-    background: var(--surface-color);
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    border-radius: var(--radius-full);
-    border: 2px solid var(--primary-color);
-    font-family: var(--font-game);
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    z-index: 10;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.vote-tracker-corner {
-    position: fixed;
-    bottom: 0px;
-    right: 0px;
-    z-index: 999;
-
-}
-
-.vote-tracker-corner strong {
-    color: var(--accent-color);
-    font-size: 1.3rem;
-    text-shadow: 0 2px 0 var(--primary-shadow);
-}
-
 /* Center Area (Dice) */
 .game-center {
     position: absolute;
