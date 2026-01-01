@@ -5,7 +5,7 @@ import './JoinGame.css';
 const JoinGame = ({ joinCode, setJoinCode, joinGame, setView, login, authenticated }) => {
 
     return (
-        <SetupCard title="🎲 Enter Game" className="join-game-card">
+        <SetupCard title="🎲 Enter Game" className="join-game-card" onBack={() => setView('home')}>
             <div className="join-form">
                 <label>
                     Game Code:
@@ -17,7 +17,6 @@ const JoinGame = ({ joinCode, setJoinCode, joinGame, setView, login, authenticat
                 ) : (
                     <button className="btn-primary" onClick={joinGame}>Join Now</button>
                 )}
-                <button className="btn-secondary" onClick={() => setView('home')}>Back</button>
             </div>
         </SetupCard>
     );

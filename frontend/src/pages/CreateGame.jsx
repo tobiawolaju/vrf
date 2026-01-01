@@ -10,7 +10,7 @@ const CreateGame = ({ gameCode, startDelay, setView, setJoinCode }) => {
     const joinUrl = `${window.location.origin}/?gameCode=${gameCode}`;
 
     return (
-        <SetupCard title="🎲 Match Set!" className="create-game-card">
+        <SetupCard title="🎲 Match Set!" className="create-game-card" onBack={() => setView('home')}>
             <p className="game-code">Join Code: <strong>{gameCode}</strong></p>
             <div className="join-links">
                 <h3>Share this link to invite players:</h3>
