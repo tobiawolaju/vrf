@@ -19,6 +19,19 @@ const Gameplay = ({
     handleDragOver,
     handleDrop
 }) => {
+    const [debugRolling, setDebugRolling] = React.useState(false);
+    const [debugRoll, setDebugRoll] = React.useState(1);
+
+    React.useEffect(() => {
+        let interval;
+        if (debugRolling) {
+            interval = setInterval(() => {
+                setDebugRoll(Math.floor(Math.random() * 3) + 1);
+            }, 100);
+        }
+        return () => clearInterval(interval);
+    }, [debugRolling]);
+
     const canCommit = currentPlayer && currentPlayer.cards.some(c => !c.isBurned) && gameState.phase === 'commit';
 
     return (
@@ -26,7 +39,12 @@ const Gameplay = ({
 
             <div className="vote-tracker-corner">
                 {gameState.players.filter(p => p.hasCommitted).length}/{gameState.players.length} voted
-
+                <button
+                    onClick={() => setDebugRolling(!debugRolling)}
+                    style={{ marginLeft: '10px', padding: '5px', fontSize: '0.7rem', opacity: 0.5 }}
+                >
+                    {debugRolling ? 'Stop Dice' : 'Test Dice'}
+                </button>
             </div>
 
             <Scoreboard players={gameState.players} />
@@ -43,10 +61,10 @@ const Gameplay = ({
             />
 
             <div className="game-center">
-                {(gameState.phase === 'resolve' || gameState.phase === 'rolling' || isRolling) && (
+                {(gameState.phase === 'resolve' || gameState.phase === 'rolling' || isRolling || debugRolling) && (
                     <Dice3D
-                        roll={visualRoll}
-                        isRolling={isRolling}
+                        roll={debugRolling ? debugRoll : visualRoll}
+                        isRolling={isRolling || debugRolling}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                     />
