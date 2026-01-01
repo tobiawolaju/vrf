@@ -75,6 +75,11 @@ const Gameplay = ({
                 lastRollTxHash={gameState.lastRollTxHash}
                 currentUserCommitment={gameState.currentPlayer?.commitment}
             />
+            {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
+                <div className="waiting-message">
+                    <p>✓ Recorded</p>
+                </div>
+            )}
 
             <div className="game-center">
                 {(gameState.phase === 'resolve' || gameState.phase === 'rolling' || isRolling || debugRolling) && (
@@ -85,11 +90,7 @@ const Gameplay = ({
                         onDrop={handleDrop}
                     />
                 )}
-                {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
-                    <div className="waiting-message">
-                        <p>✓ Recorded</p>
-                    </div>
-                )}
+
             </div>
 
             <PlayerHand

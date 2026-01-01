@@ -17,8 +17,8 @@
 }
 
 .vote-tracker-container:hover {
-    background: rgba(30, 30, 40, 0.95);
-    border-color: var(--primary-color, #ff00ff);
+    background: rgba(30, 30, 40, 0);
+    border-color: var(--primary-color, #ff00ff00);
 }
 
 .vote-status {
@@ -30,9 +30,9 @@
 }
 
 .vote-status .count {
-    color: var(--primary-color, #ff00ff);
+    color: var(--primary-color, #ffffff);
     font-size: 1.2rem;
-    text-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .vote-status .label {
