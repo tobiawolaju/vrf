@@ -1,7 +1,7 @@
 import React from 'react';
 import './PlayerHand.css';
 
-const PlayerHand = ({ currentPlayer, selectedCard, canCommit, phase, handleCardClick, handleSkip }) => {
+const PlayerHand = ({ currentPlayer, selectedCard, canCommit, phase, resolveTimeLeft, handleCardClick, handleSkip }) => {
     if (!currentPlayer) return null;
 
     const handleMouseMove = (e, idx) => {
@@ -29,7 +29,11 @@ const PlayerHand = ({ currentPlayer, selectedCard, canCommit, phase, handleCardC
             <div className="cards-container">
                 {currentPlayer.cards.map((cardItem, idx) => {
                     const cardValue = cardItem.value;
-                    const isBurned = cardItem.isBurned;
+
+                    // DELAY REVEAL: Only show as burned if we are deep into the resolve phase
+                    // (Waiting for dice to land)
+                    const isBurned = cardItem.isBurned && (phase !== 'resolve' || (resolveTimeLeft || 0) < 2500);
+
                     const isSelected = selectedCard !== null && cardValue === selectedCard;
 
                     const total = currentPlayer.cards.length;
@@ -48,16 +52,16 @@ const PlayerHand = ({ currentPlayer, selectedCard, canCommit, phase, handleCardC
                             }}
                             onMouseMove={(e) => handleMouseMove(e, idx)}
                             onMouseLeave={handleMouseLeave}
-                            onClick={() => canCommit && !isBurned && handleCardClick(cardValue)}
+                            onClick={() => canCommit && !cardItem.isBurned && handleCardClick(cardValue)} // Still check original isBurned for clicks
                         >
                             <img src={`/card${cardValue}.png`} alt={`Card ${cardValue}`} />
                             <div className="card-glare" />
                         </div>
                     );
                 })}
-                {(phase === 'commit' || phase === 'resolve') && (
+                {(phase === 'commit' || phase === 'resolve' || phase === 'rolling') && (
                     <div
-                        className={`skip-button ${selectedCard === null && currentPlayer.hasCommitted ? 'selected' : ''} ${phase === 'resolve' ? 'disabled' : ''}`}
+                        className={`skip-button ${selectedCard === null && currentPlayer.hasCommitted ? 'selected' : ''} ${phase !== 'commit' ? 'disabled' : ''}`}
                         onClick={() => phase === 'commit' && handleSkip()}
                     >
                         <img src="/card4.png" alt="Skip" />

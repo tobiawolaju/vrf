@@ -77,7 +77,7 @@ const Gameplay = ({
             />
             {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
                 <div className="waiting-message">
-                    <p>Hand Locked, you can still change your card before the round ends</p>
+                    <p>Hand Locked</p>
                 </div>
             )}
 
@@ -98,6 +98,7 @@ const Gameplay = ({
                 selectedCard={selectedCard}
                 canCommit={canCommit}
                 phase={gameState.phase}
+                resolveTimeLeft={resolveTimeLeft}
                 handleCardClick={handleCardClick}
                 handleSkip={handleSkip}
             />
