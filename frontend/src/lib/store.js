@@ -62,115 +62,150 @@ export const db = {
 
     // --- LEADERBOARD LOGIC ---
     updateGameStats: async (gameState, winnerId) => {
+        // Prepare pipeline for Redis/KV
+        const pipeline = (useRedis && redisClient) ? redisClient.pipeline() : (useKV && kvClient) ? kvClient.pipeline() : null;
+
+        // In-Memory Fallback
         if (!useRedis && !useKV) {
-            console.warn("Leaderboard requires Redis/KV. Skipping persistence.");
-            return;
+            global.playerStats = global.playerStats || new Map();
+            global.leaderboard = global.leaderboard || [];
         }
 
-        const pipeline = useRedis ? redisClient.pipeline() : kvClient.pipeline();
-
         for (const player of gameState.players) {
-            // Use Twitter handle if available, else wallet/ID fallback
-            // NOTE: We rely on the fact that we will store 'handle' on the player object in server.js
             const handle = player.twitterHandle || player.name || player.id;
             const isWinner = player.id === winnerId;
-
             const userKey = `user:stats:${handle}`;
 
-            // 1. Increment Matches Played
-            pipeline.hincrby(userKey, 'played', 1);
-
-            // 2. Increment Wins if winner
-            if (isWinner) {
-                pipeline.hincrby(userKey, 'won', 1);
+            if (pipeline) {
+                // Redis/KV Update
+                pipeline.hincrby(userKey, 'played', 1);
+                if (isWinner) pipeline.hincrby(userKey, 'won', 1);
+            } else {
+                // In-Memory Update
+                const stats = global.playerStats.get(handle) || { played: 0, won: 0 };
+                stats.played += 1;
+                if (isWinner) stats.won += 1;
+                global.playerStats.set(handle, stats);
             }
         }
 
-        // Execute increments
-        await pipeline.exec();
+        // Execute Redis/KV Pipeline
+        if (pipeline) await pipeline.exec();
 
-        // 3. Re-calculate Win Rate for these players and update Leaderboard ZSET
-        // We need a second pass or separate pipeline because we need the NEW values.
-        // For simplicity/perf in this demo, accessing specific keys individually or logic-heavy
-        // approaches might be slow. We'll just read them back.
-
+        // Recalculate Ratios and Update Leaderboard
         for (const player of gameState.players) {
             const handle = player.twitterHandle || player.name || player.id;
-            const userKey = `user:stats:${handle}`;
 
-            let stats;
+            let played = 0;
+            let won = 0;
+
             if (useRedis) {
-                stats = await redisClient.hgetall(userKey);
+                const stats = await redisClient.hgetall(`user:stats:${handle}`);
+                if (stats) {
+                    played = parseInt(stats.played || 0);
+                    won = parseInt(stats.won || 0);
+                }
+            } else if (useKV) {
+                const stats = await kvClient.hgetall(`user:stats:${handle}`);
+                if (stats) {
+                    played = parseInt(stats.played || 0);
+                    won = parseInt(stats.won || 0);
+                }
             } else {
-                stats = await kvClient.hgetall(userKey);
+                const stats = global.playerStats.get(handle);
+                if (stats) {
+                    played = stats.played;
+                    won = stats.won;
+                }
             }
 
-            if (stats) {
-                const played = parseInt(stats.played || 0);
-                const won = parseInt(stats.won || 0);
-                if (played > 0) {
-                    const winRate = (won / played) * 100;
-                    // ZADD leaderboard score member
-                    if (useRedis) {
-                        await redisClient.zadd('leaderboard', winRate, handle);
-                    } else {
-                        await kvClient.zadd('leaderboard', { score: winRate, member: handle });
-                    }
+            if (played > 0) {
+                // Calculate Win Ratio (percentage)
+                // We add a tiny fraction of 'played' count to break ties in favor of more games played
+                // e.g. 100% with 10 games > 100% with 1 game
+                const winRatio = (won / played) * 100;
+                const score = winRatio + (played * 0.0001);
+
+                if (useRedis) {
+                    await redisClient.zadd('leaderboard', score, handle);
+                } else if (useKV) {
+                    await kvClient.zadd('leaderboard', { score: score, member: handle });
+                } else {
+                    // Update in-memory leaderboard array logic not optimal here, 
+                    // effective way is to just rebuild it on get or maintain a sorted list.
+                    // Let's just store the score in stats and sort on get.
+                    const stats = global.playerStats.get(handle);
+                    stats.score = score;
+                    stats.winRate = winRatio; // Store pure ratio for display
+                    global.playerStats.set(handle, stats);
                 }
             }
         }
     },
 
     getLeaderboard: async () => {
-        // Returns top 50 playres
-        if (!useRedis && !useKV) return [];
+        const CAP = 20; // Cap to Top 20
 
-        let topMembers;
-
+        // 1. Redis Implementation
         if (useRedis) {
-            // ZREVRANGE leaderboard 0 49 WITHSCORES
-            topMembers = await redisClient.zrevrange('leaderboard', 0, 49, 'WITHSCORES');
-            // Redis returns array [member1, score1, member2, score2...]
+            const topMembers = await redisClient.zrevrange('leaderboard', 0, CAP - 1, 'WITHSCORES');
             const result = [];
             for (let i = 0; i < topMembers.length; i += 2) {
                 result.push({
                     rank: (i / 2) + 1,
                     name: topMembers[i],
-                    winRate: parseFloat(topMembers[i + 1]).toFixed(1)
+                    winRate: Math.floor(parseFloat(topMembers[i + 1])).toFixed(1) // Remove tie-breaker decimal for display
                 });
             }
             return result;
-        } else {
-            // Vercel KV
-            topMembers = await kvClient.zrange('leaderboard', 0, 49, { rev: true, withScores: true });
-            // KV returns object list or similar depending on library version, usually [{ member, score }]
-            // Check library docs or assume standard Object return for @vercel/kv zrange w/ options
-            // Actually @vercel/kv returns [score, member, ...] or [{member, score}] depending on config.
-            // Let's assume standardized array of objects if recent, but plain array if basic. 
-            // It usually acts like Redis command.
-            // Let's safe guard.
+        }
 
-            // If it returns flat array:
-            if (Array.isArray(topMembers) && typeof topMembers[0] === 'string') {
-                const result = [];
-                for (let i = 0; i < topMembers.length; i += 2) {
-                    result.push({
-                        rank: (i / 2) + 1,
-                        name: topMembers[i], // For Vercel KV `zrange` member might be second if not careful, but usually Member/Score
-                        // Actually Vercel KV `zrange` often returns distinct objects if configured, 
-                        // but let's stick to the specific Vercel KV behavior: 
-                        // It returns [{ member: 'foo', score: 10 }] if using the high level client helpers?
-                        // No, we are using `kvClient` (createClient).
-                        // Let's try to map assuming it returns objects as that is standard for their SDK
-                    });
+        // 2. Vercel KV Implementation
+        if (useKV) {
+            const topMembers = await kvClient.zrange('leaderboard', 0, CAP - 1, { rev: true, withScores: true });
+            // Handle @vercel/kv generic return types
+            if (Array.isArray(topMembers)) {
+                // If simple array [member, score, ...] (older versions/configs)
+                if (topMembers.length > 0 && typeof topMembers[0] === 'string') {
+                    const result = [];
+                    for (let i = 0; i < topMembers.length; i += 2) {
+                        result.push({
+                            rank: (i / 2) + 1,
+                            name: topMembers[i],
+                            winRate: Math.floor(parseFloat(topMembers[i + 1])).toFixed(1)
+                        });
+                    }
+                    return result;
                 }
+                // If array of objects [{member, score}, ...] (newer)
+                return topMembers.map((item, index) => ({
+                    rank: index + 1,
+                    name: item.member,
+                    winRate: Math.floor(item.score).toFixed(1)
+                }));
             }
-            // Actually, @vercel/kv `zrange` returns array of objects { member: string, score: number } by default in recent versions
-            return topMembers.map((item, index) => ({
+            return [];
+        }
+
+        // 3. In-Memory Fallback
+        if (global.playerStats) {
+            // Convert Map to Array
+            const sorted = Array.from(global.playerStats.entries())
+                .map(([name, stats]) => ({
+                    name,
+                    score: stats.score || 0,
+                    winRate: stats.winRate || 0
+                }))
+                .sort((a, b) => b.score - a.score) // Sort descending
+                .slice(0, CAP); // Cap results
+
+            return sorted.map((item, index) => ({
                 rank: index + 1,
-                name: item.member,
-                winRate: parseFloat(item.score).toFixed(1)
+                name: item.name,
+                winRate: item.winRate.toFixed(1)
             }));
         }
+
+        return [];
     }
 };
