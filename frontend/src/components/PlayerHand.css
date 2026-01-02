@@ -90,6 +90,7 @@
 
 .hand-card.selected,
 .skip-button.selected {
+    border: none;
     transform: rotate(var(--card-rotate)) translateY(-80px) scale(1.2) !important;
     z-index: 101 !important;
     box-shadow: 0 0 0 4px var(--accent-color), -20px 20px 40px rgba(0, 0, 0, 0.6);
