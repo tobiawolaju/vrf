@@ -2,10 +2,10 @@
 
 :root {
   /* Balatro Signature Palette - BRIGHTENED */
-  --bg-color: #2e0a4f;
+  --bg-color: #8400ff;
   /* Lightened from #0d0216 */
-  --surface-color: rgba(60, 20, 100, 0.85);
-  --surface-hover: rgba(85, 35, 130, 0.95);
+  --surface-color: rgba(240, 226, 255, 0.85);
+  --surface-hover: rgba(204, 146, 255, 0.95);
 
   --primary-color: #e040fb;
   /* Vibrant Electric Purple */
@@ -17,7 +17,7 @@
   --secondary-hover: #40c4ff;
   --secondary-shadow: #0091ea;
 
-  --success-color: #4caf50;
+  --success-color: #6dcf70;
   /* Better Balatro Green */
   --success-hover: #81c784;
   --success-shadow: #1b5e20;
@@ -27,9 +27,9 @@
   --accent-shadow: #fbc02d;
 
   --text-primary: #ffffff;
-  --text-secondary: #ffccd5;
+  --text-secondary: #7e19dd;
   --danger-color: #ff5252;
-  --border-color: rgba(255, 255, 255, 0.35);
+  --border-color: rgb(201, 65, 255);
 
   /* Typography */
   --font-game: 'Luckiest Guy', cursive;
