@@ -96,58 +96,103 @@ export function getVRFConfig() {
 }
 
 /**
- * Execute an on-chain roll in the background.
- * Fires the request, and setup a background promise to fulfill it.
+ * INTERNAL: Starts the VRF process by sending the request transaction.
+ * Returns the context needed to complete the roll.
  */
-export async function executeOnChainRoll(gameCode, roundNumber, db) {
+async function _sendVrfRequest(gameCode, roundNumber) {
     const config = getVRFConfig();
     if (!config) throw new Error("Blockchain not configured");
     const { adminWallet, contract } = config;
 
+    const roundId = BigInt(Date.now());
+
+    // Track this roll globally so event listeners can find it if needed
+    global.pendingRolls = global.pendingRolls || new Map();
+    global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
+
+    console.log(`🎲 [VRF] STARTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
+
+    // 1. REQUEST
+    const reqTxHash = await contract.write.requestDiceRoll([roundId]);
+    console.log(`   ✅ Request Sent: ${reqTxHash}`);
+
+    return {
+        roundId,
+        reqTxHash,
+        adminWallet,
+        contract,
+        gameCode,
+        roundNumber
+    };
+}
+
+/**
+ * INTERNAL: Completes the VRF process by waiting for request receipt,
+ * generating randomness, and submitting the result.
+ */
+async function _completeVrfRoll(context, db) {
+    const { roundId, reqTxHash, adminWallet, contract, gameCode } = context;
+
+    // 2. WAIT FOR REQUEST CONFIRMATION
+    console.log(`   ⏳ Waiting for request confirmation...`);
+    const receipt1 = await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
+    console.log(`   📦 Request Mined: block ${receipt1.blockNumber}`);
+
+    // 3. GENERATE & SUBMIT RANDOMNESS
+    const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+    const subTxHash = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
+    console.log(`   ✅ Submit Sent: ${subTxHash}`);
+
+    // 4. WAIT FOR SUBMIT CONFIRMATION
+    const receipt2 = await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
+
+    // Calculate result
+    const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
+    console.log(`   🏁 Roll Finished! Result: ${resultValue}`);
+
+    // 5. RESOLVE STATE IN DB
+    if (db) {
+        const st = await db.getGame(gameCode);
+        if (st) {
+            resolveRound(st, resultValue, subTxHash);
+            await db.setGame(gameCode, st);
+            console.log(`   💾 Game state updated in DB.`);
+        } else {
+            console.warn(`   ⚠️ Game ${gameCode} not found in DB during resolution.`);
+        }
+    }
+
+    return { result: resultValue, txHash: subTxHash };
+}
+
+/**
+ * Execute an on-chain roll in the BACKGROUND (for normal game flow).
+ * Returns immediately after the remote request is sent.
+ */
+export async function executeOnChainRoll(gameCode, roundNumber, db) {
     try {
-        const roundId = BigInt(Date.now());
-        global.pendingRolls = global.pendingRolls || new Map();
-        global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
+        // Start the process synchronously (send request)
+        const context = await _sendVrfRequest(gameCode, roundNumber);
 
-        console.log(`🎲 [VRF] REQUESTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-        const reqTx = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   ✅ Request Sent! Tx: ${reqTx}`);
+        // Continue the rest in the background
+        _completeVrfRoll(context, db).catch(async (err) => {
+            console.error(`❌ [VRF] Background Execution Error for ${gameCode}:`, err.message);
 
-        // Fulfillment in "background"
-        (async () => {
+            // Attempt state recovery on failure
             try {
-                const receipt = await adminWallet.waitForTransactionReceipt({ hash: reqTx });
-                console.log(`   📦 Request Mined in block ${receipt.blockNumber}`);
-
-                const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
-                const subTx = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
-                console.log(`   ✅ Submit Sent! Tx: ${subTx}`);
-
-                const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
-                console.log(`   🏁 Submit Mined! Result: ${resultValue}`);
-
-                // RESOLVE STATE IN DB
                 const st = await db.getGame(gameCode);
-                if (st) {
-                    resolveRound(st, resultValue, subTx);
+                if (st && st.rollRequested && st.phase === 'rolling') {
+                    console.log(`   ↺ Reverting game state to 'commit' phase.`);
+                    st.rollRequested = false;
+                    st.phase = 'commit';
                     await db.setGame(gameCode, st);
-                    console.log(`   ✅ Game ${gameCode} resolved successfully in background.`);
                 }
-            } catch (err) {
-                console.error("❌ [VRF] Background Execution Error:", err.message);
-                // Reset state on failure so it can retry
-                setTimeout(async () => {
-                    const st = await db.getGame(gameCode);
-                    if (st && st.rollRequested && st.phase === 'rolling') {
-                        st.rollRequested = false;
-                        st.phase = 'commit';
-                        await db.setGame(gameCode, st);
-                    }
-                }, 10000);
+            } catch (dbErr) {
+                console.error("   ❌ Failed to revert game state:", dbErr.message);
             }
-        })();
+        });
 
-        return { txHash: reqTx, roundId: roundId.toString() };
+        return { txHash: context.reqTxHash, roundId: context.roundId.toString() };
     } catch (e) {
         console.error("❌ executeOnChainRoll Error:", e.message);
         throw e;
@@ -155,50 +200,20 @@ export async function executeOnChainRoll(gameCode, roundNumber, db) {
 }
 
 /**
- * Perform a full on-chain roll (Request -> Submit) synchronously.
- * Useful for debug buttons and ensuring results before responding.
+ * Perform a full on-chain roll SYNCHRONOUSLY (for debug/admin).
+ * Waits for the entire process to complete before returning.
  */
 export async function rollDice(gameCode, roundNumber, db) {
-    const config = getVRFConfig();
-    if (!config) throw new Error("Blockchain not configured");
-    const { adminWallet, contract } = config;
-
     try {
-        const roundId = BigInt(Date.now());
+        const context = await _sendVrfRequest(gameCode, roundNumber);
+        const { result, txHash } = await _completeVrfRoll(context, db);
 
-        // Track this roll so event listeners can resolve it if they are running
-        if (global.pendingRolls) {
-            global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
-        }
-
-        console.log(`\n🎲 [rollDice] Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-
-        // 1. REQUEST
-        const reqTxHash = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   ✅ Request Sent: ${reqTxHash}`);
-
-        // 2. WAIT FOR CONFIRMATION
-        await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
-
-        // 3. PULL & SUBMIT
-        const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
-        const submitTxHash = await contract.write.submitVerifiedRoll([roundId, mockRandomness]);
-        console.log(`   ✅ Submit Sent: ${submitTxHash}`);
-
-        // 4. WAIT FOR CONFIRMATION
-        await adminWallet.waitForTransactionReceipt({ hash: submitTxHash });
-
-        const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
-        console.log(`   🎉 Finished! Result: ${resultValue}\n`);
-
-        // RESOLVE STATE IN DB (Ensuring debug roll also finishes the game round)
-        const st = await db.getGame(gameCode);
-        if (st) {
-            resolveRound(st, resultValue, submitTxHash);
-            await db.setGame(gameCode, st);
-        }
-
-        return { success: true, txHash: submitTxHash, result: resultValue, roundId: roundId.toString() };
+        return {
+            success: true,
+            txHash,
+            result,
+            roundId: context.roundId.toString()
+        };
     } catch (error) {
         console.error("❌ rollDice Error:", error.message);
         throw error;

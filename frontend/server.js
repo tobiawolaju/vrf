@@ -169,17 +169,36 @@ app.get('/api/state', async (req, res) => {
             console.log(`🚀 [GAME] Triggering Roll for ${gameCode}...`);
             gameState.rollRequested = true;
             gameState.phase = 'rolling';
+            gameState.rollRequestedTime = Date.now(); // Track start time
             await db.setGame(gameCode, gameState);
 
-            executeOnChainRoll(gameCode, gameState.round).catch(async err => {
+            executeOnChainRoll(gameCode, gameState.round, db).catch(async err => {
                 console.error(`❌ [GAME] Failed to initiate roll for ${gameCode}:`, err.message);
                 const st = await db.getGame(gameCode);
                 if (st && st.rollRequested && st.phase === 'rolling') {
                     st.rollRequested = false;
                     st.phase = 'commit';
+                    // Add slight buffer to prevent instant re-trigger logic loops if desired, 
+                    // or just let it retry immediately on next poll
                     await db.setGame(gameCode, st);
                 }
             });
+        }
+
+        // STUCK STATE RECOVERY
+        // If it's been rolling for > 20s (15s timeout + 5s buffer), reset it
+        if (gameState.phase === 'rolling' && gameState.rollRequestedTime) {
+            const sinceStart = Date.now() - gameState.rollRequestedTime;
+            if (sinceStart > 20000) {
+                console.warn(`⚠️ [GAME] Roll stuck for ${sinceStart}ms. Resetting ${gameCode} state.`);
+                gameState.rollRequested = false;
+                gameState.phase = 'commit';
+                gameState.rollRequestedTime = null;
+                // Extend commit deadline slightly so it triggers again immediately? 
+                // Actually, if we just reset to 'commit' and deadline is passed, it triggers immediately in next block above.
+                // We should probably wipe the pending roll if possible, but the timeout handles that locally.
+                await db.setGame(gameCode, gameState);
+            }
         }
 
         const publicState = getPublicState(gameState, playerId);
