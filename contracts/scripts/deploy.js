@@ -2,12 +2,13 @@ const hre = require("hardhat");
 const fs = require("fs");
 
 async function main() {
-    // Official Monad Mainnet Switchboard Address
-    // Source: https://switchboard.xyz/explorer/143
-    // Address: 0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67
-    const switchboardAddress = "0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67";
+    // Local Oracle Mode
+    // Since we cannot access the Switchboard Cloud UI, we set the deployer as the Oracle.
+    // We will run a local script (scripts/oracle.js) to act as the Oracle.
+    const [deployer] = await hre.ethers.getSigners();
+    const switchboardAddress = deployer.address;
 
-    console.log(`Deploying DiceRoller with Switchboard: ${switchboardAddress}`);
+    console.log(`Deploying DiceRoller with Local Oracle: ${switchboardAddress}`);
 
     const DiceRoller = await hre.ethers.getContractFactory("DiceRoller");
     const diceRoller = await DiceRoller.deploy(switchboardAddress);
