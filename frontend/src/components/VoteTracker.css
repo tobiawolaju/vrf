@@ -35,7 +35,7 @@
 }
 
 .debug-controls {
-    display: none;
+    display: block;
     gap: 8px;
 }
 
