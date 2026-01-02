@@ -101,37 +101,61 @@ function App() {
 
     // Dice Animation Logic
     useEffect(() => {
-        if (gameState?.phase === 'rolling' || (gameState?.phase === 'resolve' && gameState.lastRoll)) {
+        let timeoutId;
+
+        if (gameState?.phase === 'rolling') {
+            // Infinite spin while waiting for VRF
             setIsRolling(true);
+            // We can also update visual roll occasionally just in case CSS fails? 
+            // But CSS handles the loop. Let's just keep isRolling=true.
 
-            // For 'rolling' phase, we just keep shuffling indefinitely or until phase changes
-            // For 'resolve' phase, we finish the shuffle and show the result
-            if (gameState.phase === 'resolve' && gameState.lastRoll) {
-                let shuffleCount = 0;
-                const maxShuffles = 45; // 4.5 seconds at 100ms interval
+        } else if (gameState?.phase === 'resolve' && gameState.lastRoll) {
+            // VRF Result Received - Spin Down Effect
+            setIsRolling(false); // Disable infinite CSS spin, enable CSS transitions
 
-                const shuffleInterval = setInterval(() => {
-                    setVisualRoll(Math.floor(Math.random() * 3) + 1);
-                    shuffleCount++;
+            let delay = 50; // Start fast
+            let count = 0;
+            const minSteps = 15; // Minimum number of flips
 
-                    if (shuffleCount >= maxShuffles) {
-                        clearInterval(shuffleInterval);
-                        setVisualRoll(gameState.lastRoll);
-                        setIsRolling(false);
-                    }
-                }, 100);
+            const spinDown = () => {
+                // Generate random face 1-6 (visual variety, even if game is 1-3)
+                // Ensure we don't pick the same face twice in a row
+                setVisualRoll(prev => {
+                    let next;
+                    do { next = Math.floor(Math.random() * 6) + 1; } while (next === prev);
+                    return next;
+                });
 
-                return () => clearInterval(shuffleInterval);
-            } else {
-                // Persistent shuffle for 'rolling' phase
-                const shuffleInterval = setInterval(() => {
-                    setVisualRoll(Math.floor(Math.random() * 3) + 1);
-                }, 100);
-                return () => clearInterval(shuffleInterval);
-            }
-        } else if (gameState?.phase !== 'resolve' && gameState?.phase !== 'rolling') {
+                count++;
+
+                // Slow down curve
+                delay = Math.floor(delay * 1.15);
+
+                // Condition to stop:
+                // If we have done enough steps AND the delay is long enough for a 'final landing' feel
+                // AND/OR we are approaching the final moment?
+                // Simpler: Run until delay > 600ms (transition time) or max time.
+                // Let's settle on the final result once we are slow enough.
+
+                if (delay > 400 && count > minSteps) {
+                    setVisualRoll(gameState.lastRoll); // Snap to final winner
+                    return;
+                }
+
+                timeoutId = setTimeout(spinDown, delay);
+            };
+
+            spinDown();
+
+        } else {
+            // Idle / Other phases
             setIsRolling(false);
+            if (gameState?.lastRoll) {
+                setVisualRoll(gameState.lastRoll);
+            }
         }
+
+        return () => clearTimeout(timeoutId);
     }, [gameState?.phase, gameState?.lastRoll]);
 
     const createGame = async () => {
