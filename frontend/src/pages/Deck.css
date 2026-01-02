@@ -1,5 +1,29 @@
-.deck-setup-card .stacks-grid {
-    margin-top: 20px;
+/* Deck.css */
+
+.deck-card {
+    position: relative;
+    width: 1200px;
+    max-width: 95%;
+    max-height: 90vh;
+    background: #fff;
+    border-radius: 20px;
+    border: 4px solid #1a1a1a;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: -15px 15px 0 rgba(0, 0, 0, 0.3);
+}
+
+.deck-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 30px;
+    font-family: var(--font-game);
+    line-height: 1;
 }
 
 .stacks-grid {
@@ -8,7 +32,23 @@
     justify-content: center;
     gap: 60px;
     width: 100%;
-    max-width: 1200px;
+    overflow-y: auto;
+    padding: 20px 0;
+}
+
+/* Scrollbar Customization */
+.stacks-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.stacks-grid::-webkit-scrollbar-thumb {
+    background: #1a1a1a;
+    border-radius: 10px;
+}
+
+.stacks-grid::-webkit-scrollbar-track {
+    background: #eee;
+    border-radius: 10px;
 }
 
 .card-stack-container {
@@ -16,6 +56,7 @@
     flex-direction: column;
     align-items: center;
     width: 160px;
+    perspective: 1000px;
 }
 
 .stack-visual {
@@ -23,6 +64,11 @@
     width: 140px;
     height: 200px;
     margin-bottom: 30px;
+    transition: transform 0.3s;
+}
+
+.card-stack-container:hover .stack-visual {
+    transform: scale(1.05);
 }
 
 .stacked-card {
@@ -30,9 +76,9 @@
     width: 140px;
     height: 200px;
     background: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     border: 3px solid #1a1a1a;
-    box-shadow: -4px 4px 0px rgba(0, 0, 0, 0.4);
+    box-shadow: -4px 4px 0 rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -80,6 +126,7 @@
 /* Hover effects */
 .card-stack-container:hover .stacked-card {
     transform: translate(var(--hover-x), var(--hover-y)) rotate(var(--hover-rotate));
+    box-shadow: -8px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
 .stack-info {
@@ -88,41 +135,47 @@
 
 .rarity-label {
     font-size: 1.2rem;
-    font-weight: bold;
+    font-weight: 800;
     text-transform: uppercase;
     margin-bottom: 5px;
     display: block;
+    font-family: var(--font-ui);
+    color: #1a1a1a;
 }
 
 .mst-text {
-    color: #ffcc00;
+    color: #d4af37;
 }
 
 .uncommon-text {
-    color: #00ff88;
+    color: #00cc66;
 }
 
 .rare-text {
-    color: #00aaff;
+    color: #0066cc;
 }
 
 .ultra-rare-text {
-    color: #ff00ff;
+    color: #cc00cc;
 }
 
 .gold-text {
     color: #ffd700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    text-shadow: 1px 1px 0 #1a1a1a;
 }
 
 .card-count {
-    color: var(--text-secondary);
+    color: #666;
     font-size: 1rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui);
+    font-weight: 700;
 }
 
-
 @media (max-width: 768px) {
+    .deck-card {
+        padding: 15px;
+    }
+
     .stacks-grid {
         gap: 40px;
     }

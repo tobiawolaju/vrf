@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import Dropdown from '../components/Dropdown';
-import SetupCard from '../components/SetupCard';
 import { useWallets } from '@privy-io/react-auth';
 import { createWalletClient, custom } from 'viem';
 import { monadMainnet } from '../utils/chains';
@@ -34,6 +34,7 @@ const CONTRACT_ABI = [
 const CONTRACT_ADDRESS = "0x4d2B7a429734348e0010d5cFB5B71D5cA99b86Ca";
 //test
 const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, authenticated, user }) => {
+    const [showSettings, setShowSettings] = useState(false);
     const { wallets } = useWallets();
 
     const handleIncrement = async () => {
@@ -87,95 +88,89 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
     const solWallet = user?.linkedAccounts?.find(acc => acc.type === 'wallet' && acc.chainType === 'solana')?.address;
 
     return (
-        <SetupCard title="🎲 MonkeyHand">
+        <div className="home-container">
+            {/* Player Ticket (Top Right) */}
+            {authenticated && (
+                <div className="player-ticket">
+                    <div className="ticket-avatar">
+                        {avatar.length > 2 ? <img src={avatar} alt="pfp" /> : avatar}
+                    </div>
+                    <div className="ticket-info">
+                        <span className="ticket-name">@{playerName}</span>
+                        {ethWallet && <span className="ticket-wallet">{ethWallet.slice(0, 4)}...{ethWallet.slice(-4)}</span>}
+                    </div>
+                    <button className="logout-mini" onClick={logout} title="Logout">✕</button>
+                </div>
+            )}
+
+            {/* Main Title */}
+            <h1 className="home-title">MonkeyHand</h1>
+
             {!authenticated ? (
-                <div className="home-buttons">
-                    <p className="login-prompt">Please log in to play</p>
-                    <button className="btn-primary" onClick={login}>Log In / Sign Up</button>
+                <div className="login-container">
+                    <button className="btn-login-huge" onClick={login}>
+                        CONNECT TO PLAY
+                    </button>
                 </div>
             ) : (
                 <>
-                    <div className="user-profile">
-                        <div className="user-avatar">{avatar.length > 2 ? <img src={avatar} alt="pfp" /> : avatar}</div>
-                        <div className="user-info">
-                            <span className="user-name">@{playerName}</span>
-                            <div className="user-wallets">
-                                {ethWallet && (
-                                    <div className="wallet-tag eth" title="Monad Wallet">
-                                        <span className="wallet-icon">M</span>
-                                        <span className="wallet-address">{ethWallet.slice(0, 6)}...{ethWallet.slice(-4)}</span>
-                                        <button
-                                            className="btn-copy"
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(ethWallet);
-                                                // Optional: minimal feedback could be added here or just rely on user knowing
-                                            }}
-                                            title="Copy Address"
-                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: 'inherit' }}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                )}
+                    <div className="home-menu">
+                        {/* CREATE MATCH CARD */}
+                        <div className="menu-card primary" onClick={createGame}>
+                            <div className="icon">🎲</div>
+                            <h2>CREATE<br />MATCH</h2>
+
+                            {/* Timer Trigger Chip */}
+                            <div className="timer-chip" onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}>
+                                ⏱️ {delayOptions.find(o => o.value === startDelay)?.label || 'Delay'}
                             </div>
                         </div>
-                        <button className="btn-logout" onClick={logout} title="Logout">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                            </svg>
+
+                        {/* JOIN MATCH CARD */}
+                        <div className="menu-card join" onClick={() => setView('join')}>
+                            <div className="icon">🎫</div>
+                            <h2>JOIN<br />MATCH</h2>
+                            <div className="label">Enter code</div>
+                        </div>
+                    </div>
+
+                    <div className="home-bottom-bar">
+                        <button className="icon-btn" onClick={() => setView('leaderboard')}>
+                            🏆 LEADERBOARD
+                        </button>
+                        <button className="icon-btn" onClick={() => setView('deck')}>
+                            🎴 DECK
+                        </button>
+                        <button className="icon-btn" onClick={handleIncrement}>
+                            ⚡ TEST CONTRACT
                         </button>
                     </div>
 
-                    <div className="home-settings">
-                        <label>
-                            Match Start Delay
-                            <Dropdown
-                                options={delayOptions}
-                                value={startDelay}
-                                onChange={(val) => setStartDelay(val)}
-                            />
-                        </label>
-                    </div>
-                    <div className="home-buttons">
-                        <button className="btn-primary" onClick={createGame}>Create New Match</button>
-                        <button className="btn-secondary" onClick={() => setView('join')}>Join Existing Match</button>
-                        <button
-                            className="btn-secondary"
-                            style={{ marginTop: '0', background: 'rgba(255, 215, 0, 0.1)', color: '#ffd700', border: '1px solid rgba(255, 215, 0, 0.3)' }}
-                            onClick={() => setView('leaderboard')}
-                        >
-                            🏆 Leaderboard
-                        </button>
-                        <button
-                            className="btn-secondary"
-                            style={{ marginTop: '0', background: 'rgba(0, 255, 255, 0.1)', color: '#00ffff', border: '1px solid rgba(0, 255, 255, 0.3)' }}
-                            onClick={() => setView('deck')}
-                        >
-                            🎴 Deck
-                        </button>
-                        <div className="divider" style={{
-                            height: '1px',
-                            background: 'rgba(255,255,255,0.1)',
-                            margin: '10px 0'
-                        }} />
-                        <button
-                            className="btn-accent"
-                            style={{
-                                background: 'var(--accent-color)',
-                                color: 'black',
-                                boxShadow: '0 4px 0 #b08d00'
-                            }}
-                            onClick={handleIncrement}
-                        >
-                            Test Contract Increment
-                        </button>
-                    </div>
+                    {/* SETTINGS MODAL */}
+                    {showSettings && (
+                        <div className="settings-modal" onClick={() => setShowSettings(false)}>
+                            <div className="settings-content" onClick={e => e.stopPropagation()}>
+                                <h2>Match Delay</h2>
+                                <div className="settings-options">
+                                    {delayOptions.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            className={`btn-option ${startDelay === opt.value ? 'selected' : ''}`}
+                                            onClick={() => { setStartDelay(opt.value); setShowSettings(false); }}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button className="btn-close-modal" onClick={() => setShowSettings(false)}>
+                                    CLOSE
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
-        </SetupCard>
+        </div>
     );
 };
 

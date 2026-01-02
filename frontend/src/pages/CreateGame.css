@@ -1,84 +1,159 @@
 /* CreateGame.css */
-.create-game-card .game-code {
-    font-size: 1.5rem;
-    margin: var(--spacing-md) 0;
-    padding: var(--spacing-md);
-    background: rgba(117, 30, 168, 0.1);
-    border: 2px dashed var(--primary-color);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-    letter-spacing: 1px;
+
+.create-game-card {
+    position: relative;
+    width: 500px;
+    max-width: 95%;
+    background: #fff;
+    border-radius: 20px;
+    border: 4px solid #1a1a1a;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: -15px 15px 0 rgba(0, 0, 0, 0.3);
     text-align: center;
 }
 
-.create-game-card .game-code strong {
-    color: var(--accent-color);
-}
-
-.create-game-card .join-links {
-    margin-bottom: var(--spacing-lg);
-    text-align: left;
-}
-
-.create-game-card .join-links h3 {
+.create-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    margin-bottom: 20px;
     font-family: var(--font-game);
-    font-size: 1.1rem;
-    margin-bottom: var(--spacing-sm);
-    color: var(--text-secondary);
+    line-height: 1;
 }
 
-.create-game-card .single-link-container {
-    display: flex;
-    gap: 12px;
-}
-
-.create-game-card .single-link-container input {
-    background: rgba(0, 0, 0, 0.3);
-    color: var(--text-secondary);
-    border-color: var(--border-color);
-    flex: 1;
-}
-
-.create-game-card .btn-copy {
-    white-space: nowrap;
-    background: var(--primary-color);
-    color: white;
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 0 var(--primary-shadow);
-}
-
-.create-game-card .btn-copy:hover {
-    background: var(--primary-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 var(--primary-shadow);
-}
-
-.create-game-card .info-box {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-lg);
-    text-align: left;
-    border-left: 4px solid var(--accent-color);
-}
-
-.create-game-card .info-box p {
-    margin: 8px 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-.create-game-card .host-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    justify-content: center;
-}
-
-.create-game-card .host-actions button {
+.game-code-box {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 12px;
     width: 100%;
-    padding: 14px;
-    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.game-code-label {
+    color: #ccc;
+    font-family: var(--font-ui);
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.game-code-val {
+    color: var(--accent-color);
+    font-size: 3rem;
+    font-family: var(--font-game);
+    letter-spacing: 2px;
+    line-height: 1;
+}
+
+.share-section {
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.share-section h3 {
+    font-family: var(--font-ui);
+    font-weight: 800;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.share-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.share-input-row input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #1a1a1a;
+    background: #f0f0f0;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    color: #1a1a1a;
+    border-radius: 8px;
+}
+
+.btn-copy {
+    padding: 12px 20px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.btn-copy:hover {
+    transform: scale(1.05);
+}
+
+.btn-copy:active {
+    transform: scale(0.95);
+}
+
+.info-box {
+    background: #e0f7fa;
+    border-left: 5px solid var(--primary-color);
+    padding: 15px;
+    border-radius: 8px;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 30px;
+    color: #006064;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.info-box p {
+    margin: 5px 0;
+    color: #006064;
+}
+
+.btn-join-match {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.5rem;
+    font-family: var(--font-ui);
+    font-weight: 800;
+    text-transform: uppercase;
+    background: rgb(255, 208, 0);
+    color: #1a1a1a;
+    border: 3px solid #1a1a1a;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1a1a1a;
+    transition: all 0.1s;
+}
+
+.btn-join-match:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 0 #1a1a1a;
+    background: rgb(255, 220, 50);
+}
+
+.btn-join-match:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1a1a1a;
+}
+
+@media (max-width: 768px) {
+    .create-game-card {
+        width: 100%;
+        padding: 20px;
+    }
+
+    .game-code-val {
+        font-size: 2.5rem;
+    }
 }

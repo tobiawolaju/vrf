@@ -1,85 +1,121 @@
-.waiting-room-card .game-code-display {
-    font-family: var(--font-game);
-    font-size: 1.5rem;
-    color: var(--text-secondary);
-    margin-bottom: 2rem;
-    margin-top: -10px;
-    letter-spacing: 1px;
-    text-align: center;
-}
+/* WaitingRoom.css */
 
-.game-code-display strong {
-    color: var(--accent-color);
-    background: rgba(0, 0, 0, 0.3);
-    padding: 4px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--primary-color);
-}
-
-.waiting-room-card .countdown-timer.big {
-    margin: 2rem 0;
-    padding: 2rem;
-    background: rgba(117, 30, 168, 0.15);
-    border: 2px solid var(--primary-color);
-    border-radius: var(--radius-lg);
-    color: var(--text-primary);
+.lobby-card {
     position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 20px rgba(117, 30, 168, 0.2);
-    text-align: center;
+    width: 600px;
+    max-width: 95%;
+    background: #fff;
+    border-radius: 20px;
+    border: 4px solid #1a1a1a;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: -15px 15px 0 rgba(0, 0, 0, 0.3);
 }
 
-.waiting-room-card .countdown-timer.big::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--primary-color));
-    background-size: 200% 100%;
-    animation: flowBar 2s infinite linear;
+.lobby-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
 }
 
-.waiting-room-card .countdown-timer.big {
-    font-family: var(--font-game);
-    font-size: 1.4rem;
+.lobby-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #1a1a1a;
     text-transform: uppercase;
+    line-height: 1;
+    font-family: var(--font-game);
+    margin-bottom: 10px;
 }
 
-.waiting-room-card .countdown-timer .time {
-    font-size: 4rem;
-    display: block;
-    font-family: var(--font-game);
-    margin-top: 10px;
-    color: var(--text-primary);
-    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.5);
-    text-shadow: 0 6px 0 var(--primary-shadow);
+.game-code-pill {
+    background: #1a1a1a;
+    color: var(--accent-color);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
 }
 
-.waiting-room-card .players-list h3 {
-    font-family: var(--font-game);
-    margin-bottom: 1.5rem;
-    color: var(--text-secondary);
+.players-section {
+    width: 100%;
+    margin-bottom: 30px;
     text-align: center;
 }
 
-.waiting-room-card .info-box {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+.players-section h3 {
+    font-family: var(--font-ui);
+    font-weight: 800;
+    color: #666;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    font-size: 1rem;
+}
+
+.avatar-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
+.countdown-box {
+    background: #f0f0f0;
+    border: 3px solid #1a1a1a;
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.countdown-label {
+    font-family: var(--font-ui);
+    font-weight: bold;
+    color: #666;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.countdown-time {
+    font-family: var(--font-game);
+    font-size: 3.5rem;
+    color: var(--primary-color);
+    line-height: 1;
+    text-shadow: 2px 2px 0 #1a1a1a;
+}
+
+.lobby-info {
+    font-family: var(--font-ui);
+    color: #666;
     font-weight: 600;
-    text-align: center;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 10px 20px;
+    border-radius: 8px;
 }
 
-@keyframes flowBar {
-    0% {
-        background-position: 100% 0%;
+@media (max-width: 768px) {
+    .lobby-card {
+        padding: 20px;
+        box-shadow: 0 10px 0 rgba(0, 0, 0, 0.3);
+        /* Simpler shadow for mobile */
+        margin-bottom: 20px;
     }
 
-    100% {
-        background-position: -100% 0%;
+    .lobby-title {
+        font-size: 2.2rem;
+    }
+
+    .countdown-time {
+        font-size: 2.5rem;
     }
 }

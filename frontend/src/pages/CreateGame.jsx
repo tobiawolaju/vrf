@@ -1,5 +1,4 @@
 import React from 'react';
-import SetupCard from '../components/SetupCard';
 import './CreateGame.css';
 
 const CreateGame = ({ gameCode, startDelay, setView, setJoinCode }) => {
@@ -10,25 +9,37 @@ const CreateGame = ({ gameCode, startDelay, setView, setJoinCode }) => {
     const joinUrl = `${window.location.origin}/?gameCode=${gameCode}`;
 
     return (
-        <SetupCard title="🎲 Match Set!" className="create-game-card" onBack={() => setView('home')}>
-            <p className="game-code">Join Code: <strong>{gameCode}</strong></p>
-            <div className="join-links">
-                <h3>Share this link to invite players:</h3>
-                <div className="single-link-container">
-                    <input type="text" value={joinUrl} readOnly onClick={(e) => e.target.select()} />
-                    <button className="btn-copy" onClick={() => copyToClipboard(joinUrl)}>Copy Link</button>
+        <div className="home-container">
+            <div className="create-game-card">
+                <button className="btn-back-home" onClick={() => setView('home')}>
+                    ← BACK
+                </button>
+
+                <h1 className="create-title">Match Set!</h1>
+
+                <div className="game-code-box">
+                    <div className="game-code-label">Join Code</div>
+                    <div className="game-code-val">{gameCode}</div>
                 </div>
-            </div>
-            <div className="info-box">
-                <p>💡 Unlimited players can join before the timer ends.</p>
-                <p>🎮 Match starts automatically in {startDelay} {startDelay === 1 ? 'minute' : 'minutes'}.</p>
-            </div>
-            <div className="host-actions">
-                <button className="btn-secondary" onClick={() => { setJoinCode(gameCode); setView('join'); }}>
-                    Join Your Match
+
+                <div className="share-section">
+                    <h3>Share Invite Link:</h3>
+                    <div className="share-input-row">
+                        <input type="text" value={joinUrl} readOnly onClick={(e) => e.target.select()} />
+                        <button className="btn-copy" onClick={() => copyToClipboard(joinUrl)}>COPY</button>
+                    </div>
+                </div>
+
+                <div className="info-box">
+                    <p>💡 Unlimited players can join.</p>
+                    <p>🎮 Starts in {startDelay} {startDelay === 1 ? 'minute' : 'minutes'}.</p>
+                </div>
+
+                <button className="btn-join-match" onClick={() => { setJoinCode(gameCode); setView('join'); }}>
+                    ENTER LOBBY
                 </button>
             </div>
-        </SetupCard>
+        </div>
     );
 };
 

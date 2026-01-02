@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import SetupCard from '../components/SetupCard';
 import './Leaderboard.css';
 
 const Leaderboard = ({ setView }) => {
@@ -25,30 +24,38 @@ const Leaderboard = ({ setView }) => {
     }, []);
 
     return (
-        <SetupCard title="🏆 Hall of Fame" onBack={() => setView('home')} className="leaderboard-setup-card">
-            {loading ? (
-                <div className="loading-spinner">Loading...</div>
-            ) : players.length === 0 ? (
-                <div className="empty-state">No matches recorded yet. Be the first!</div>
-            ) : (
-                <div className="leaderboard-list">
-                    <div className="leaderboard-row header">
-                        <span className="rank">#</span>
-                        <span className="player">Player</span>
-                        <span className="winrate">Win Rate</span>
-                    </div>
-                    {players.map((player) => (
-                        <div key={player.rank} className="leaderboard-row">
-                            <span className={`rank rank-${player.rank}`}>{player.rank}</span>
-                            <span className="player">
-                                {player.name.startsWith('@') ? player.name : `@${player.name}`}
-                            </span>
-                            <span className="winrate">{player.winRate}%</span>
+        <div className="home-container">
+            <div className="leaderboard-card">
+                <button className="btn-back-home" onClick={() => setView('home')}>
+                    ← BACK
+                </button>
+
+                <h1 className="leaderboard-title">🏆 Hall of Fame</h1>
+
+                {loading ? (
+                    <div className="loading-spinner">Loading...</div>
+                ) : players.length === 0 ? (
+                    <div className="empty-state">No matches recorded yet. Be the first!</div>
+                ) : (
+                    <div className="leaderboard-list">
+                        <div className="leaderboard-row header">
+                            <span className="rank">#</span>
+                            <span className="player">Player</span>
+                            <span className="winrate">Win Rate</span>
                         </div>
-                    ))}
-                </div>
-            )}
-        </SetupCard>
+                        {players.map((player) => (
+                            <div key={player.rank} className="leaderboard-row">
+                                <span className={`rank rank-${player.rank}`}>{player.rank}</span>
+                                <span className="player">
+                                    {player.name.startsWith('@') ? player.name : `@${player.name}`}
+                                </span>
+                                <span className="winrate">{player.winRate}%</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import PlayerBadge from '../components/PlayerBadge';
-import SetupCard from '../components/SetupCard';
 import './WaitingRoom.css';
 
 const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
@@ -8,26 +7,37 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
     const secs = waitTimeLeft % 60;
 
     return (
-        <SetupCard title="Game Lobby" className="waiting-room-card">
-            <p className="game-code-display">Code: <strong>{gameCode}</strong></p>
+        <div className="home-container">
+            <div className="lobby-card">
+                <button className="btn-back-home" onClick={() => setView('home')}>
+                    ← ESCAPE
+                </button>
+                <div className="lobby-header">
+                    <h1 className="lobby-title">Lobby</h1>
+                    <div className="game-code-pill">CODE: {gameCode}</div>
+                </div>
 
-            <div className="players-list">
-                <h3>Players Joined</h3>
-                <div className="avatar-row">
-                    {gameState.players.map((p, idx) => (
-                        <PlayerBadge key={p.id || idx} player={p} />
-                    ))}
+                <div className="players-section">
+                    <h3>Players Joined</h3>
+                    <div className="avatar-grid">
+                        {gameState.players.map((p, idx) => (
+                            <PlayerBadge key={p.id || idx} player={p} />
+                        ))}
+                    </div>
+                </div>
+
+                <div className="countdown-box">
+                    <div className="countdown-label">Match Starts In</div>
+                    <div className="countdown-time">
+                        {mins}:{secs.toString().padStart(2, '0')}
+                    </div>
+                </div>
+
+                <div className="lobby-info">
+                    Waiting for players to join...
                 </div>
             </div>
-
-            <div className="countdown-timer big">
-                Match starts in: <span className="time">{mins}m {secs.toString().padStart(2, '0')}s</span>
-            </div>
-
-            <div className="info-box">
-                <p>Invite friends using the code above!</p>
-            </div>
-        </SetupCard>
+        </div>
     );
 };
 
