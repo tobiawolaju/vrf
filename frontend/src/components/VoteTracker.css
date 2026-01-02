@@ -1,7 +1,7 @@
 .vote-tracker-container {
     position: fixed;
     top: 20px;
-    left: 20px;
+    right: 20px;
     padding: 12px 18px;
     border-radius: 16px;
     display: flex;
@@ -40,7 +40,7 @@
 }
 
 .debug-btn {
-    border: none;
+    border: flex;
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 0.75rem;
