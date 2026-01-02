@@ -1,9 +1,8 @@
 import express from 'express';
-import crypto from 'crypto';
 import cors from 'cors';
 import { db } from './src/lib/store.js';
 import { initializeGame, generatePlayerId, getPublicState, resolveRound } from './src/lib/gameLogic.js';
-import { getVRFConfig, rollDice, executeOnChainRoll as vrf_executeOnChainRoll } from './src/lib/vrf.js';
+import { getVRFConfig, executeOnChainRoll } from './src/lib/vrf.js'; // rollDice helper removed
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -27,10 +26,6 @@ if (vrfConfig) {
     console.warn("⚠️ ADMIN_PRIVATE_KEY not set or VRF setup failed. Blockchain features disabled.");
 }
 
-async function executeOnChainRoll(gameCode, roundNumber) {
-    return await vrf_executeOnChainRoll(gameCode, roundNumber, db);
-}
-
 function setupContractListener() {
     if (!contract) return;
 
@@ -40,18 +35,27 @@ function setupContractListener() {
         onLogs: async (logs) => {
             for (const log of logs) {
                 const roundId = log.args.roundId.toString();
-                const result = log.args.result;
-                const txHash = log.transactionHash;
+                const result = Number(log.args.result);
+                const randomness = log.args.randomness;
+                const txHash = log.transactionHash; // The Oracle Callback Tx Hash
 
-                console.log(`⚡ Event: DiceRolled | ID: ${roundId} | Result: ${result}`);
+                console.log(`⚡ [ORACLE] DiceRolled | ID: ${roundId} | Result: ${result}`);
+
+                // Find local game waiting for this roundId
                 const pending = global.pendingRolls ? global.pendingRolls.get(roundId) : null;
 
                 if (pending) {
                     const { gameCode } = pending;
                     const gameState = await db.getGame(gameCode);
                     if (gameState) {
+                        console.log(`   ✅ Resolving Game ${gameCode} with result ${result}`);
                         resolveRound(gameState, result, txHash);
                         global.pendingRolls.delete(roundId);
+
+                        // Clear stuck state tracking
+                        gameState.rollRequested = false;
+                        gameState.rollRequestedTime = null;
+
                         await db.setGame(gameCode, gameState);
                     }
                 }
@@ -81,7 +85,7 @@ app.post('/api/join', async (req, res) => {
 
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
         if (gameState.phase !== 'waiting') {
-            return res.status(400).json({ error: 'you got locked out, match already in progress' });
+            return res.status(400).json({ error: 'Match already in progress' });
         }
 
         let playerId = privyId || generatePlayerId();
@@ -165,44 +169,43 @@ app.get('/api/state', async (req, res) => {
 
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
+        // TRIGGER ROLL if deadline passed
         if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline && !gameState.rollRequested) {
-            console.log(`🚀 [GAME] Triggering Roll for ${gameCode}...`);
+            console.log(`🚀 [GAME] Requesting Oracle Roll for ${gameCode}...`);
             gameState.rollRequested = true;
             gameState.phase = 'rolling';
-            gameState.rollRequestedTime = Date.now(); // Track start time
+            gameState.rollRequestedTime = Date.now();
             await db.setGame(gameCode, gameState);
 
+            // Execute Request (Async - result will come via Event Listener)
             executeOnChainRoll(gameCode, gameState.round, db).catch(async err => {
-                console.error(`❌ [GAME] Failed to initiate roll for ${gameCode}:`, err.message);
+                console.error(`❌ [GAME] Failed to request roll for ${gameCode}:`, err.message);
+                // Reset to try again
                 const st = await db.getGame(gameCode);
                 if (st && st.rollRequested && st.phase === 'rolling') {
                     st.rollRequested = false;
                     st.phase = 'commit';
-                    // Add slight buffer to prevent instant re-trigger logic loops if desired, 
-                    // or just let it retry immediately on next poll
+                    st.rollRequestedTime = null;
                     await db.setGame(gameCode, st);
                 }
             });
         }
 
-        // STUCK STATE RECOVERY
-        // If it's been rolling for > 20s (15s timeout + 5s buffer), reset it
+        // STUCK STATE WATCHDOG (20s)
         if (gameState.phase === 'rolling' && gameState.rollRequestedTime) {
             const sinceStart = Date.now() - gameState.rollRequestedTime;
             if (sinceStart > 20000) {
-                console.warn(`⚠️ [GAME] Roll stuck for ${sinceStart}ms. Resetting ${gameCode} state.`);
+                console.warn(`⚠️ [GAME] Oracle request timed out (>20s). Resetting.`);
                 gameState.rollRequested = false;
                 gameState.phase = 'commit';
                 gameState.rollRequestedTime = null;
-                // Extend commit deadline slightly so it triggers again immediately? 
-                // Actually, if we just reset to 'commit' and deadline is passed, it triggers immediately in next block above.
-                // We should probably wipe the pending roll if possible, but the timeout handles that locally.
                 await db.setGame(gameCode, gameState);
             }
         }
 
         const publicState = getPublicState(gameState, playerId);
 
+        // Update Leaderboard if needed
         if (publicState.phase === 'ended' && !gameState.statsUpdated) {
             const winner = publicState.winner;
             if (winner) {
@@ -229,15 +232,16 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
-app.post('/api/debug-roll', async (req, res) => {
+// Manual Logic Trigger (Requests Oracle Only)
+app.post('/api/force-roll', async (req, res) => {
     try {
         const { gameCode } = req.body;
         const gameState = await db.getGame(gameCode);
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
-        console.log(`🛠️ [DEBUG] Manual Roll Triggered for ${gameCode}`);
-        const result = await rollDice(gameCode, gameState.round || 1);
-        res.json(result);
+        console.log(`🛠️ [MANUAL] Forcing Oracle Request for ${gameCode}`);
+        const result = await executeOnChainRoll(gameCode, gameState.round || 1, db);
+        res.json({ success: true, ...result });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -245,6 +249,5 @@ app.post('/api/debug-roll', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🎲 Local Dev Server running on http://localhost:${PORT}`);
-    console.log(`   (Mimicking Vercel Serverless environment)`);
+    console.log(`🎲 Game Server running on http://localhost:${PORT}`);
 });

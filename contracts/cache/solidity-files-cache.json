@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\A_Projects\\vrf\\contracts\\contracts\\DiceRoller.sol": {
-      "lastModificationDate": 1767193827983,
-      "contentHash": "29b1d351c2b8c2f130c4d6e4a4c0e069",
+      "lastModificationDate": 1767386797555,
+      "contentHash": "0b82e54381ef823182b2ea5d09f6593f",
       "sourceName": "contracts/DiceRoller.sol",
       "solcConfig": {
         "version": "0.8.24",

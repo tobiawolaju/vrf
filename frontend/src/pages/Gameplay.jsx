@@ -37,15 +37,15 @@ const Gameplay = ({
 
     const triggerVRF = async () => {
         try {
-            console.log("🎲 Manually triggering VRF...");
-            const res = await fetch('/api/debug-roll', {
+            console.log("🎲 Manually requesting Oracle Roll...");
+            const res = await fetch('/api/force-roll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gameCode: gameState.gameCode })
             });
             const data = await res.json();
             if (data.success) {
-                alert(`VRF Triggered!\nTx: ${data.txHash}\nResult: ${data.result || 'Pending...'}`);
+                alert(`Oracle Request Sent!\n\nTx: ${data.txHash}\n\nThe Oracle will now fulfill the request asynchronously. Please wait for the result...`);
             } else {
                 alert(`Error: ${data.error}`);
             }

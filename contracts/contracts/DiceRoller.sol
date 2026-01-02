@@ -1,78 +1,75 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/**
- * DiceRoller - Simplified for Monad Switchboard On-Demand
- * 
- * Since Monad's Switchboard uses pull-based model (not callback),
- * we use a hybrid approach:
- * 1. Contract emits request event
- * 2. Backend fetches randomness from Switchboard API
- * 3. Backend submits to this contract
- * 4. Contract validates and emits result
- */
+// Removed invalid import. We define the callback interface implicitly by enforcing msg.sender check.
 
 contract DiceRoller {
     // --- Errors ---
+    error OnlySwitchboard();
     error AlreadyFulfilled(uint256 roundId);
-    error NotOwner();
-    error InvalidResult();
+    error InvalidRandomness();
 
     // --- Events ---
-    event DiceRequested(uint256 indexed roundId, uint256 timestamp);
+    // Emitted when game requests randomness. Backend listens to this.
+    event DiceRequested(uint256 indexed roundId, address requester);
+    
+    // Emitted when Switchboard fulfills the request.
     event DiceRolled(uint256 indexed roundId, uint8 result, bytes32 randomness);
 
     // --- State ---
-    address public owner;
+    address public immutable switchboard; // The only address allowed to callback
+    
+    // Map roundId -> result (0 if pending)
+    mapping(uint256 => uint8) public diceResults;
+    mapping(uint256 => bytes32) public randomnessProofs;
 
-    // Map roundId -> result
-    mapping(uint256 => uint8) public diceResult;
-    mapping(uint256 => bool) public fulfilled;
-    mapping(uint256 => bytes32) public randomnessProof;
-
-    constructor() {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
-        _;
+    constructor(address _switchboard) {
+        switchboard = _switchboard;
     }
 
     /**
-     * @notice Request a dice roll (emits event for backend to process)
-     * @param roundId Unique identifier for this roll
+     * @notice Requests randomness for a specific game round.
+     * @param roundId The unique round identifier (e.g. timestamp)
      */
-    function requestDiceRoll(uint256 roundId) external onlyOwner returns (uint256) {
-        if (fulfilled[roundId]) revert AlreadyFulfilled(roundId);
-        
-        emit DiceRequested(roundId, block.timestamp);
-        return roundId;
+    function requestDiceRoll(uint256 roundId) external {
+        if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
+        emit DiceRequested(roundId, msg.sender);
     }
 
     /**
-     * @notice Submit verified randomness (called by backend after Switchboard verification)
-     * @param roundId The round ID
-     * @param randomness The verified random bytes32
+     * @notice Callback function called ONLY by the Switchboard Oracle.
+     * @param _roundId The round ID passed back from the request context (or encoded)
+     * @param _randomness The resolved randomness
      */
-    function submitVerifiedRoll(uint256 roundId, bytes32 randomness) external onlyOwner {
-        if (fulfilled[roundId]) revert AlreadyFulfilled(roundId);
-        if (randomness == bytes32(0)) revert InvalidResult();
+    // Note: The specific function signature depends on how the Switchboard Function is configured to call back.
+    // Standard pattern often uses a specific selector or generic `callback`.
+    // We will implement a generic handler that we expect the Oracle to target.
+    function fulfillRandomness(uint256 _roundId, bytes32 _randomness) external {
+        // 1. Validate Caller
+        if (msg.sender != switchboard) revert OnlySwitchboard();
 
-        // Convert randomness to 1-3
-        uint8 result = uint8((uint256(randomness) % 3) + 1);
+        // 2. Validate State
+        if (diceResults[_roundId] != 0) revert AlreadyFulfilled(_roundId);
+        if (_randomness == bytes32(0)) revert InvalidRandomness();
 
-        fulfilled[roundId] = true;
-        diceResult[roundId] = result;
-        randomnessProof[roundId] = randomness;
+        // 3. Derive Logic (1-3 Dice)
+        // result = (randomness % 3) + 1
+        uint8 result = uint8((uint256(_randomness) % 3) + 1);
 
-        emit DiceRolled(roundId, result, randomness);
+        // 4. Store
+        diceResults[_roundId] = result;
+        randomnessProofs[_roundId] = _randomness;
+
+        // 5. Emit
+        emit DiceRolled(_roundId, result, _randomness);
     }
 
     /**
-     * @notice Get dice result for a round
+     * @notice View function to check status
      */
-    function getDiceResult(uint256 roundId) external view returns (bool isFulfilled, uint8 result, bytes32 proof) {
-        return (fulfilled[roundId], diceResult[roundId], randomnessProof[roundId]);
+    function getDiceResult(uint256 roundId) external view returns (bool isFulfilled, uint8 result) {
+        result = diceResults[roundId];
+        isFulfilled = result != 0;
     }
 }
+
