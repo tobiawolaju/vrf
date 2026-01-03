@@ -40,48 +40,63 @@ function App() {
     const [visualRoll, setVisualRoll] = useState(1);
     const [isRolling, setIsRolling] = useState(false);
 
-    // --- ORACLE NATIVE VRF FLOW ---
+    // --- ORACLE NATIVE VRF FLOW (Hardened) ---
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'rolling' || !walletClient || !publicClient) return;
+        if (!gameState || gameState.phase !== 'rolling' || !walletClient || !publicClient || !authenticated) return;
         if (vrfInProgress.current === gameState.currentRoundId) return;
 
         const handleVRF = async () => {
             const roundId = gameState.currentRoundId;
-            console.log(`🤖 [VRF] Auto-Orchestrating Round ${roundId}`);
+            const gameId = gameState.gameCode;
+            const playerAddress = user?.wallet?.address;
+
+            if (!playerAddress) return;
+
+            // Deterministic Leader Election: Connected player with lowest index requests
+            const activePlayers = gameState.players.filter(p => p.connected).sort((a, b) => a.playerNumber - b.playerNumber);
+            const isLeader = activePlayers[0]?.id === playerId;
+
+            if (!isLeader) {
+                console.log(`👤 [VRF] Following Leader ${activePlayers[0]?.name} for Round ${roundId}`);
+                vrfInProgress.current = roundId;
+                return;
+            }
+
+            console.log(`👑 [VRF] Leading Orchestration for Round ${roundId}`);
             vrfInProgress.current = roundId;
 
             try {
-                // 1. Commit Phase (if not already requested)
-                const { userRandomHex, userCommitment } = generateVRFCommitment();
-                userRandomRef.current = userRandomHex;
+                // 1. Check if already requested (in case of overlap)
+                const status = await publicClient.readContract({
+                    address: "0x131e56853F087F74Dbd59f7c6581cd57201a5f34",
+                    abi: DICEROLLER_ABI,
+                    functionName: 'getDiceStatus',
+                    args: [BigInt(roundId)]
+                });
 
-                const res = await requestRoll(roundId, userCommitment, walletClient, publicClient);
-                if (!res.success) {
-                    // It's possible someone else requested it already, which is fine
-                    console.warn("   ⚠️ Request failed (maybe already done?):", res.error);
-                }
+                if (status.requested) {
+                    console.log("   ✅ Already requested by someone else.");
+                } else {
+                    // 2. Generate Hardened Commitment
+                    const { userReveal, userCommitment } = await generateHardenedCommitment(roundId, gameId, playerAddress);
+                    userRandomRef.current = userReveal; // userReveal is H(secret, context)
 
-                // 2. Reveal Phase
-                // Pyth provider reveals after commitment is confirmed.
-                // We wait a bit or poll for the sequenceNumber.
-                let attempts = 0;
-                while (attempts < 5) {
-                    const status = await finalizeRoll(roundId, userRandomRef.current, walletClient, publicClient);
-                    if (status.success) {
-                        console.log("   ✅ VRF Flow Complete!");
-                        break;
+                    // 3. Request Roll
+                    const res = await requestHardenedRoll(roundId, gameId, userCommitment, walletClient, publicClient);
+                    if (res.success) {
+                        // 4. Share Secret with Backend Crank (Completion Guarantee)
+                        await shareRevealSecret(roundId, userReveal);
+                        console.log("   ✅ Secret shared with Backend Crank.");
                     }
-                    attempts++;
-                    await new Promise(r => setTimeout(r, 3000));
                 }
             } catch (err) {
                 console.error("   ❌ VRF Orchestration Failed:", err);
-                vrfInProgress.current = null; // Allow retry
+                vrfInProgress.current = null; // Allow retry or leader handover
             }
         };
 
         handleVRF();
-    }, [gameState?.phase, gameState?.currentRoundId, walletClient, publicClient]);
+    }, [gameState?.phase, gameState?.currentRoundId, walletClient, publicClient, authenticated]);
 
     // Poll game state
     useEffect(() => {

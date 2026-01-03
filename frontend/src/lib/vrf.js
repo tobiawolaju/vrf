@@ -1,21 +1,17 @@
-import { keccak256, bytesToHex, hexToBytes } from 'viem';
-import { resolveRound } from './gameLogic.js';
+import { keccak256, bytesToHex, hexToBytes, encodeAbiParameters, parseAbiParameters } from 'viem';
 
 /**
- * ORACLE-NATIVE VRF LIBRARY (FRONTEND)
+ * HARDENED VRF LIBRARY (FRONTEND)
  * 
- * This library handles the trust-minimal VRF flow using Pyth Entropy.
- * The player's browser is responsible for:
- * 1. Generating local entropy (commitment secret)
- * 2. Requesting the roll on-chain
- * 3. Fetching the oracle's secret from Pyth Hermes
- * 4. Finalizing the roll on-chain
+ * Implements Commitment Binding:
+ * userReveal = H(userSecret, roundId, gameId, playerAddress)
+ * userCommitment = H(userReveal)
  */
 
-// --- CONFIG ---
-const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34"; // DiceRoller.sol
+const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34";
 const PYTH_ENTROPY_ADDRESS = "0x98046Bd286715D3B0BC227Dd7a956b83D8978603";
 const PYTH_PROVIDER = "0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344";
+const BACKEND_URL = "/api";
 
 export const DICEROLLER_ABI = [
     {
@@ -23,6 +19,7 @@ export const DICEROLLER_ABI = [
         "name": "requestDiceRoll",
         "inputs": [
             { "name": "roundId", "type": "uint256" },
+            { "name": "gameId", "type": "string" },
             { "name": "userCommitment", "type": "bytes32" }
         ],
         "outputs": [],
@@ -42,44 +39,40 @@ export const DICEROLLER_ABI = [
         "outputs": [
             { "name": "requested", "type": "bool" },
             { "name": "fulfilled", "type": "bool" },
-            { "name": "result", "type": "uint8" },
-            { "name": "sequenceNumber", "type": "uint64" }
+            { "name": "result", "type": "uint8" }
         ],
         "stateMutability": "view"
     }
 ];
 
-const PYTH_ABI = [
-    {
-        "type": "function",
-        "name": "revealWithCallback",
-        "inputs": [
-            { "name": "provider", "type": "address" },
-            { "name": "sequenceNumber", "type": "uint64" },
-            { "name": "userReveal", "type": "bytes32" },
-            { "name": "providerReveal", "type": "bytes32" }
-        ],
-        "outputs": [],
-        "stateMutability": "payable"
-    }
-];
-
 /**
- * Step 1: Generate Player Commitment
+ * Step 1: Generate Hardened Commitment
+ * userReveal = keccak256(abi.encode(userSecret, roundId, gameId, msg.sender))
  */
-export function generateVRFCommitment() {
-    const userRandom = crypto.getRandomValues(new Uint8Array(32));
-    const userRandomHex = bytesToHex(userRandom);
-    const userCommitment = keccak256(userRandomHex);
-    return { userRandomHex, userCommitment };
+export async function generateHardenedCommitment(roundId, gameId, playerAddress) {
+    // 1. Generate 32 bytes of high-entropy secret
+    const userSecret = crypto.getRandomValues(new Uint8Array(32));
+    const userSecretHex = bytesToHex(userSecret);
+
+    // 2. Bind to context: H(secret, roundId, gameId, player)
+    // Solidity: abi.encode(bytes32, uint256, string, address)
+    const encoded = encodeAbiParameters(
+        parseAbiParameters('bytes32, uint256, string, address'),
+        [userSecretHex, BigInt(roundId), gameId, playerAddress]
+    );
+
+    const userReveal = keccak256(encoded);
+    const userCommitment = keccak256(userReveal);
+
+    return { userSecretHex, userReveal, userCommitment };
 }
 
 /**
  * Step 2: Request Roll (Player Signs)
  */
-export async function requestRoll(roundId, userCommitment, walletClient, publicClient) {
+export async function requestHardenedRoll(roundId, gameId, userCommitment, walletClient, publicClient) {
     try {
-        console.log(`🎲 [VRF] Requesting Roll for Round ${roundId}...`);
+        console.log(`🎲 [VRF] Requesting Hardened Roll | Round: ${roundId} | Game: ${gameId}`);
 
         const [account] = await walletClient.getAddresses();
         const fee = await publicClient.readContract({
@@ -92,67 +85,35 @@ export async function requestRoll(roundId, userCommitment, walletClient, publicC
             address: CONTRACT_ADDRESS,
             abi: DICEROLLER_ABI,
             functionName: 'requestDiceRoll',
-            args: [BigInt(roundId), userCommitment],
+            args: [BigInt(roundId), gameId, userCommitment],
             value: fee,
             account
         });
 
-        console.log(`   ✅ Request TX Sent: ${hash}`);
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-        // Find sequenceNumber from logs if needed, or just poll DiceStatus later
-        return { success: true, hash, receipt };
+        console.log(`   ✅ Request TX: ${hash}`);
+        await publicClient.waitForTransactionReceipt({ hash });
+        return { success: true, hash };
     } catch (e) {
-        console.error("❌ requestRoll Error:", e.message);
+        console.error("❌ requestHardenedRoll Error:", e.message);
         return { success: false, error: e.message };
     }
 }
 
 /**
- * Step 3: Reveal (Player Signs)
+ * Step 3: Share Reveal Secret with Backend (For Crank Fallback)
+ * This ensures the round completes even if the player goes offline.
  */
-export async function finalizeRoll(roundId, userRandomHex, walletClient, publicClient) {
+export async function shareRevealSecret(roundId, userReveal) {
     try {
-        console.log(`🔓 [VRF] Finalizing Roll for Round ${roundId}...`);
-
-        // 1. Get sequenceNumber from contract
-        const status = await publicClient.readContract({
-            address: CONTRACT_ADDRESS,
-            abi: DICEROLLER_ABI,
-            functionName: 'getDiceStatus',
-            args: [BigInt(roundId)]
+        console.log(`📡 [VRF] Sharing Reveal Secret for Round ${roundId}...`);
+        const res = await fetch(`${BACKEND_URL}/submit-secret`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roundId: roundId.toString(), userReveal })
         });
-
-        if (!status.requested) throw new Error("Roll not requested yet");
-        if (status.fulfilled) return { success: true, alreadyFulfilled: true };
-
-        const sequenceNumber = status.sequenceNumber;
-        console.log(`   📝 Sequence Number: ${sequenceNumber}`);
-
-        // 2. Fetch Provider Reveal from Pyth Hermes API
-        console.log("   📡 Fetching Pyth provider reveal...");
-        const revealResponse = await fetch(`https://hermes.pyth.network/v2/entropy/ops/reveal?sequence_number=${sequenceNumber}`);
-        if (!revealResponse.ok) throw new Error("Failed to fetch reveal from Pyth Hermes");
-
-        const revealData = await revealResponse.json();
-        const providerReveal = revealData.provider_reveal;
-
-        // 3. Reveal with Callback (Player Signs)
-        const [account] = await walletClient.getAddresses();
-        const hash = await walletClient.writeContract({
-            address: PYTH_ENTROPY_ADDRESS,
-            abi: PYTH_ABI,
-            functionName: 'revealWithCallback',
-            args: [PYTH_PROVIDER, sequenceNumber, userRandomHex, providerReveal],
-            account
-        });
-
-        console.log(`   ✅ Reveal TX Sent: ${hash}`);
-        await publicClient.waitForTransactionReceipt({ hash });
-
-        return { success: true, hash };
+        return await res.json();
     } catch (e) {
-        console.error("❌ finalizeRoll Error:", e.message);
+        console.error("❌ shareRevealSecret Error:", e.message);
         return { success: false, error: e.message };
     }
 }
