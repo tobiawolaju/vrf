@@ -1,15 +1,13 @@
 import { createWalletClient, http, publicActions, getContract } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { resolveRound } from './gameLogic.js';
-import { CrossbarClient } from "@switchboard-xyz/on-demand"; // Import Switchboard SDK
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // --- CONFIG ---
-// Updated to the new Switchboard-compliant contract
 const CONTRACT_ADDRESS = "0x59921233Ed41da6c49936De3364BB064320999E4";
-const QUEUE_ID = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752"; // Monad Mainnet Queue
+const ORACLE_BACKEND_URL = process.env.ORACLE_BACKEND_URL || "http://localhost:3001";
 
 const DICEROLLER_ABI = [
     {
@@ -20,31 +18,12 @@ const DICEROLLER_ABI = [
         "stateMutability": "nonpayable"
     },
     {
-        "type": "function",
-        "name": "fulfillRandomness",
-        "inputs": [
-            { "name": "roundId", "type": "uint256" },
-            { "name": "proof", "type": "bytes" }
-        ],
-        "outputs": [],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "event",
-        "name": "DiceRequested",
-        "inputs": [
-            { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "requester", "type": "address", "indexed": false }
-        ],
-        "anonymous": false
-    },
-    {
         "type": "event",
         "name": "DiceRolled",
         "inputs": [
             { "name": "roundId", "type": "uint256", "indexed": true },
             { "name": "result", "type": "uint8", "indexed": false },
-            { "name": "randomness", "type": "bytes32", "indexed": false }
+            { "name": "randomness", "type": "uint256", "indexed": false }
         ],
         "anonymous": false
     }
@@ -70,7 +49,6 @@ const monadMainnet = {
 
 let adminWallet = null;
 let contract = null;
-let crossbar = null;
 
 export function getVRFConfig() {
     if (contract) return { adminWallet, contract, DICEROLLER_ABI };
@@ -90,16 +68,6 @@ export function getVRFConfig() {
                 client: adminWallet
             });
 
-            // Initialize Switchboard Client (with error handling for serverless)
-            try {
-                crossbar = new CrossbarClient("https://crossbar.switchboard.xyz");
-                console.log("✅ Switchboard CrossbarClient initialized");
-            } catch (crossbarError) {
-                console.warn("⚠️ CrossbarClient initialization failed (serverless environment?):", crossbarError.message);
-                console.warn("⚠️ VRF will use fallback mode");
-                crossbar = null;
-            }
-
             return { adminWallet, contract, DICEROLLER_ABI };
         } catch (e) {
             console.error("❌ Failed to setup blockchain connection:", e.message);
@@ -110,100 +78,58 @@ export function getVRFConfig() {
 }
 
 /**
- * INTERNAL: Starts the VRF process by sending the request transaction.
- * NOTE: For On-Demand, on-chain request is optional if we push directly, 
- * but we keep it for semantic tracking in the contract.
- */
-async function _sendVrfRequest(gameCode, roundNumber) {
-    const config = getVRFConfig();
-    if (!config) throw new Error("Blockchain not configured");
-    const { adminWallet, contract } = config;
-
-    const roundId = BigInt(Date.now());
-
-    // Track this roll globally
-    global.pendingRolls = global.pendingRolls || new Map();
-    global.pendingRolls.set(roundId.toString(), { gameCode, roundNumber });
-
-    console.log(`🎲 [VRF] STARTING ROLL: Game: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
-
-    // 1. REQUEST (Optional Log)
-    const reqTxHash = await contract.write.requestDiceRoll([roundId]);
-    console.log(`   ✅ Request Sent: ${reqTxHash}`);
-
-    return {
-        roundId,
-        reqTxHash,
-        adminWallet,
-        contract,
-        gameCode,
-        roundNumber
-    };
-}
-
-/**
- * INTERNAL: Completes the VRF process by FETCHING A REAL PROOF
- * from Switchboard and submitting it.
- */
-async function _completeVrfRoll(context, db) {
-    const { roundId, adminWallet, contract, gameCode } = context;
-
-    console.log(`   ⏳ Fetching Oracle Proof from Switchboard...`);
-
-    // 2. FETCH PROOF FROM SWITCHBOARD
-    if (!crossbar) {
-        throw new Error("Switchboard CrossbarClient not available (serverless environment limitation). VRF cannot complete.");
-    }
-
-    const result = await crossbar.fetch(QUEUE_ID);
-
-    // Switchboard returns an array of encoded updates (proofs). We normally take the first one.
-    const proof = result.encoded[0];
-    if (!proof) throw new Error("Failed to fetch proof from Switchboard");
-
-    console.log(`   📦 Proof Received: ${proof.slice(0, 20)}...`);
-
-    // 3. SUBMIT PROOF TO CONTRACT
-    console.log(`   🔄 Submitting Proof to Contract...`);
-    const subTxHash = await contract.write.fulfillRandomness([roundId, proof]);
-    console.log(`   ✅ Fulfillment Sent: ${subTxHash}`);
-
-    // 4. WAIT FOR CONFIRMATION
-    await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
-
-    console.log(`   🏁 Roll Finished on-chain!`);
-
-    // Return hash. Server listener will pick up the event to update DB.
-    return { result: null, txHash: subTxHash };
-}
-
-/**
- * Execute an on-chain roll in the BACKGROUND (for normal game flow).
+ * Execute an on-chain roll by calling the dedicated oracle backend.
  */
 export async function executeOnChainRoll(gameCode, roundNumber, db) {
     try {
-        const context = await _sendVrfRequest(gameCode, roundNumber);
+        console.log(`🎲 [VRF] Requesting roll from oracle backend: ${gameCode} | Round: ${roundNumber}`);
 
-        // Continue in background
-        _completeVrfRoll(context, db).catch(async (err) => {
-            console.error(`❌ [VRF] Background Execution Error for ${gameCode}:`, err.message);
-            // Attempt state recovery on failure
-            try {
-                const st = await db.getGame(gameCode);
-                if (st && st.rollRequested && st.phase === 'rolling') {
-                    console.log(`   ↺ Reverting game state to 'commit' phase.`);
-                    st.rollRequested = false;
-                    st.phase = 'commit';
-                    await db.setGame(gameCode, st);
-                }
-            } catch (dbErr) {
-                console.error("   ❌ Failed to revert game state:", dbErr.message);
-            }
+        // Call the oracle backend
+        const response = await fetch(`${ORACLE_BACKEND_URL}/api/roll-dice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gameCode, roundNumber })
         });
 
-        return { txHash: context.reqTxHash, roundId: context.roundId.toString() };
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Oracle backend failed');
+        }
+
+        console.log(`   ✅ Roll Complete! Result: ${data.result} | TX: ${data.txHash}`);
+
+        // Update game state in DB
+        if (db) {
+            const st = await db.getGame(gameCode);
+            if (st) {
+                resolveRound(st, data.result, data.txHash);
+                await db.setGame(gameCode, st);
+                console.log(`   💾 Game state updated in DB.`);
+            }
+        }
+
+        return {
+            txHash: data.txHash,
+            roundId: data.roundId,
+            result: data.result
+        };
     } catch (e) {
         console.error("❌ executeOnChainRoll Error:", e.message);
+
+        // Attempt state recovery on failure
+        try {
+            const st = await db.getGame(gameCode);
+            if (st && st.rollRequested && st.phase === 'rolling') {
+                console.log(`   ↺ Reverting game state to 'commit' phase.`);
+                st.rollRequested = false;
+                st.phase = 'commit';
+                await db.setGame(gameCode, st);
+            }
+        } catch (dbErr) {
+            console.error("   ❌ Failed to revert game state:", dbErr.message);
+        }
+
         throw e;
     }
 }
@@ -213,31 +139,31 @@ export async function executeOnChainRoll(gameCode, roundNumber, db) {
  */
 export async function retryFulfillment(gameCode, roundId, db) {
     try {
-        console.log(`🔄 [VRF] Retrying fulfillment for ${gameCode} (Round ${roundId})`);
-        const config = getVRFConfig();
-        if (!config) return;
-        const { contract, adminWallet } = config;
+        console.log(`🔄 [VRF] Retrying fulfillment via oracle backend for ${gameCode} (Round ${roundId})`);
 
-        // FETCH PROOF FROM SWITCHBOARD (REAL RECOVERY)
-        console.log(`   ⏳ Fetching fresh Oracle Proof...`);
-        if (!crossbar) {
-            console.error("   ❌ CrossbarClient not available");
-            return { success: false, error: "Switchboard client unavailable" };
+        const response = await fetch(`${ORACLE_BACKEND_URL}/api/fulfill-roll`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roundId })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            return { success: false, error: data.error };
         }
 
-        const result = await crossbar.fetch(QUEUE_ID);
-        const proof = result.encoded[0];
+        // Update DB if we got a result
+        if (db && data.result) {
+            const st = await db.getGame(gameCode);
+            if (st && st.phase === 'rolling') {
+                resolveRound(st, data.result, data.txHash);
+                await db.setGame(gameCode, st);
+                console.log(`   💾 Game state updated in DB (Recovery).`);
+            }
+        }
 
-        console.log(`   🔄 Submitting Retry...`);
-        const subTxHash = await contract.write.fulfillRandomness([BigInt(roundId), proof]);
-        console.log(`   ✅ Retry Submit Sent: ${subTxHash}`);
-
-        await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
-
-        // Note: Database update is handled by the event listener in server.js when the event triggers.
-        // But for redundancy we return success.
-
-        return { success: true };
+        return { success: true, result: data.result };
     } catch (e) {
         console.error(`⚠️ [VRF] Retry failed: ${e.message}`);
         return { success: false, error: e.message };
