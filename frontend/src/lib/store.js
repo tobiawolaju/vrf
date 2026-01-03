@@ -68,10 +68,12 @@ export const db = {
             return games;
         }
         if (useKV) {
-            const { keys } = await kvClient.keys('game:*');
+            // Correct for @vercel/kv: keys returns an array of strings
+            const keys = await kvClient.keys('game:*');
             const games = [];
-            for (const key of keys) {
-                const game = await kvClient.get(key);
+            for (const key of keys || []) {
+                const code = key.replace('game:', '');
+                const game = await db.getGame(code);
                 if (game) games.push(game);
             }
             return games;
@@ -81,6 +83,8 @@ export const db = {
     // Add game to active set
     trackGame: async (gameCode) => {
         if (useRedis) await redisClient.sadd('active_games', gameCode);
+        // KV doesn't strictly need a set as keys('game:*') is available,
+        // but we could use one for parity if needed. Keys is fine for now.
     },
     setSecret: async (roundId, userReveal) => {
         const EXPIRE_SECONDS = 3600; // 1 hour

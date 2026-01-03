@@ -14,6 +14,25 @@ export default async function handler(req, res) {
         const gameState = await db.getGame(gameCode);
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
+        // Passive Transition Check (Fallback if centralized crank isn't running)
+        const originalState = JSON.stringify(gameState);
+        const { checkTimeouts } = await import('../src/lib/gameLogic.js');
+
+        checkTimeouts(gameState);
+
+        // Custom Hardened Transition for commit -> rolling (needs roundId)
+        if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline) {
+            gameState.phase = 'rolling';
+            if (!gameState.currentRoundId) {
+                gameState.currentRoundId = Date.now().toString();
+            }
+        }
+
+        if (JSON.stringify(gameState) !== originalState) {
+            console.log(`🔄 [Vercel] Auto-advancing game ${gameCode} to ${gameState.phase}`);
+            await db.setGame(gameCode, gameState);
+        }
+
         const publicState = getPublicState(gameState, playerId);
 
         // Update stats if game ended and not already recorded

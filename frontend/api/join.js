@@ -55,6 +55,7 @@ export default async function handler(req, res) {
         gameState.joinedCount++;
 
         await db.setGame(gameCode, gameState);
+        await db.trackGame(gameCode);
 
         res.status(200).json({
             success: true,
