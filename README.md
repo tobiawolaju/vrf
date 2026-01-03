@@ -1,6 +1,6 @@
 # 🎲 MonkeyHand
 
-A high-stakes multiplayer dice game powered by **Switchboard VRF on Monad** for provably fair, on-chain verifiable randomness.
+A high-stakes multiplayer dice game powered by **Pyth Entropy (VRF) on Monad** for trust-minimal, oracle-native on-chain verifiable randomness.
 
 ## 🎮 Game Overview
 
@@ -17,60 +17,83 @@ A high-stakes multiplayer dice game powered by **Switchboard VRF on Monad** for 
 
 ---
 
-## 🔗 Switchboard VRF Architecture
+## 🔗 Pyth Entropy VRF Architecture
 
-Integrating Switchboard's **On-Demand (Pull-based)** model to ensure that the backend cannot manipulate dice rolls.
+This project uses an **Oracle-Native, Trust-Minimal** VRF design. Unlike traditional implementations, the backend server holds no private keys and cannot influence the result. Every player creates their own secret entropy, which is combined with Pyth's entropy on-chain.
 
 ### System Diagram
 
 ```mermaid
-graph TD
-    A[Frontend] -->|Poll Status| B[Backend Server]
-    B -->|1. Request Roll| C[DiceRoller Contract]
-    C -.->|Emit Request| B
-    B -->|2. Pull Randomness| D[Switchboard Oracle]
-    D -->|Verified Bytes| B
-    B -->|3. Submit Proof| C
-    C -->|4. Resolve & Emit| B
-    C -.->|On-Chain Record| E[Monad Explorer]
+sequenceDiagram
+    participant Player as Player (Frontend)
+    participant Contract as DiceRoller.sol
+    participant Pyth as Pyth Entropy Contract
+    participant Backend as Backend (Indexer)
+
+    Note over Player: Generate Secure Secret<br/>Compute Commitment
+    Player->>Contract: 1. requestDiceRoll(userCommitment)
+    Contract->>Pyth: Request sequenceNumber
+    Contract->>Backend: [Emit DiceRequested]
+    
+    Note over Player: Fetch Oracle Secret (Hermes API)
+    
+    Player->>Pyth: 2. revealWithCallback(userSecret, oracleSecret)
+    Pyth->>Contract: 3. entropyCallback(randomNumber)
+    Note over Contract: Verified Combined Entropy
+    Contract->>Backend: [Emit DiceRolled]
+    
+    Backend->>Backend: 4. Index State Change
+    Backend-->>Player: [Broadcast Game Update]
 ```
 
-### The "Pull-Based" Flow
-Unlike legacy callback models, the **Switchboard On-Demand** flow on Monad follows a secure Request-Submit pattern:
+### The Oracle-Native Flow
 
-1.  **Request:** The Backend triggers `requestDiceRoll(roundId)` on-chain.
-2.  **Pull:** The Backend (acting as the Relayer) fetches cryptographically verified randomness from the Switchboard TEE-verified Oracle.
-3.  **Submit:** The Backend submits this verified proof to the `submitVerifiedRoll` function.
-4.  **Verify:** The `DiceRoller` contract validates the proof and calculates the result (1-3) **on-chain**.
-5.  **Audit:** Every roll is permanently recorded on the Monad blockchain, providing a transparent audit trail.
+1.  **Commit:** The Player's browser generates 32 bytes of secure random entropy (`userSecret`) and submits its hash (`userCommitment`) to the blockchain.
+2.  **Fetch:** The Player fetches the matching Pyth provider's secret (revealed only after the commitment is confirmed) via the Pyth Hermes API.
+3.  **Reveal:** The Player submits both their `userSecret` and the `oracleSecret` to the Pyth Entropy contract. 
+4.  **Callback:** Pyth verifies the secrets match their respective commitments, XORs them together, and calls `DiceRoller.entropyCallback` with the final random result.
+5.  **Index:** The Backend (acting ONLY as a read-only observer) records the event and updates the UI for other players.
 
-### Trust Model
+### Why It's Provably Fair
 
-| Component | Can Manipulate Result? | Role |
-|-----------|------------------------|------|
-| **Backend** | ❌ No | Relayer (Cannot alter the proof) |
-| **Contract** | ❌ No | Judge (Calculates result on-chain) |
-| **Switchboard** | ✅ Trusted Source | TEE-Verified Oracle (Industry Standard) |
-| **Frontend** | ❌ No | Display (Verifies via Explorer) |
+| Component | Trust Level | Role |
+|-----------|-------------|------|
+| **Backend** | ❌ None | **Read-Only Indexer**. No keys. No writes. |
+| **Contract** | 🔒 Authority | Verifies cryptographic proofs on-chain. |
+| **Player** | 🔑 Secret Owner | Contributes half of the entropy source. |
+| **Pyth** | 📡 Oracle | Provides the other half of the entropy source. |
+
+**No party can predict or manipulate the result alone.** The outcome is unknown until both secrets are revealed on-chain.
 
 ---
 
 ## 🚀 Deployed Contracts (Monad Mainnet)
 
--   **DiceRoller:** [`0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea`](https://monadvision.com/address/0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea)
+-   **DiceRoller (Pyth VRF):** [`0x131e56853F087F74Dbd59f7c6581cd57201a5f34`](https://monadexplorer.com/address/0x131e56853F087F74Dbd59f7c6581cd57201a5f34)
 -   **Chain ID:** `143` (Monad Mainnet)
--   **Switchboard Oracle:** `0x33A5066f65f66161bEb3f827A3e40fce7d7A2e6C`
+-   **Pyth Entropy:** `0x98046Bd286715D3B0BC227Dd7a956b83D8978603`
+-   **Pyth Provider:** `0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344`
 
 ---
 
 ## 💻 Tech Stack
 
--   **Blockchain:** Monad Mainnet (Scalable EVM)
--   **Oracle:** Switchboard On-Demand VRF (TEE-Verified)
--   **Auth:** Privy (Twitter/Social login)
--   **Backend:** Node.js + Viem
--   **Frontend:** React + Vite + Styled Components
--   **Persistence:** Redis / Vercel KV
+-   **Blockchain:** Monad Mainnet (Parallel EVM)
+-   **Oracle:** Pyth Entropy (Commit-Reveal VRF)
+-   **Auth:** Privy (Social & Embedded Wallets)
+-   **Backend:** Node.js (Read-only event indexer)
+-   **Frontend:** React + Vite + Viem
+-   **Design:** Balatro-inspired "Vibrant Glitch" Aesthetic
+
+---
+
+## 🎯 Key Features
+
+✅ **Trust-Minimal Architecture** - Server cannot re-roll or manipulate results.  
+✅ **Oracle-Native Flow** - Transactions are handled by players and Pyth directly.  
+✅ **Monad Optimized** - High-speed randomness for rapid gameplay.  
+✅ **Verifiable Fairness** - Every roll is a cryptographic combination of two secrets.  
+✅ **Arcade UI** - Fluid animations, CRT filters, and dynamic dice physics.
 
 ---
 
@@ -79,58 +102,27 @@ Unlike legacy callback models, the **Switchboard On-Demand** flow on Monad follo
 ### Prerequisites
 - Node.js 18+
 - Monad Mainnet RPC URL
-- Funded Backend Wallet (MON for gas)
+- A browser wallet (e.g., MetaMask) on Monad Mainnet
 
 ### Quick Start
 ```bash
-# 1. Install dependencies
+# 1. Start Read-Only Indexer
+cd oracle-backend
+npm install
+npm start
+
+# 2. Start Frontend
 cd frontend
 npm install
-
-# 2. Setup Environment
-cp .env.example .env
-# Update DICEROLLER_ADDRESS and ADMIN_PRIVATE_KEY
-
-# 3. Start Backend
-npm run server
-
-# 4. Start Frontend
 npm run dev
 ```
-
-### Testing & Verification
-```bash
-# Run API Health & Game Logic Tests (25/25 Passing)
-node test.js
-
-# Trigger a Real On-Chain Dice Roll Test
-node roll-dice.js
-```
-
----
-
-## 🎯 Key Features
-
-✅ **Provably Fair** - Switchboard TEE-verified randomness source.  
-✅ **On-Chain Settlement** - Results are calculated and recorded on Monad.  
-✅ **Verifiable History** - Every roll links directly to a Monad Explorer transaction.  
-✅ **Social Boarding** - Seamless entry with Twitter via Privy.  
-✅ **Arcade UI** - Fluid, responsive animations for an immersive experience.
-
----
-
-## 🏆 Leaderboard & Stats
-The global leaderboard tracks player performance across all matches:
-- **Win Rate %** (Standardized ranking)
-- **Total Wins**
-- **First Blood** (Earliest correct prediction in match history)
 
 ---
 
 ## 📚 Documentation
-- [Architecture Details](docs/implementation_summary.md)
-- [Testing Guide](frontend/TESTING.md)
-- [Local Setup Guide](frontend/LOCAL_SETUP.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Architecture Walkthrough](docs/implementation_summary.md)
+- [Trust Model Details](docs/security_review.md)
 
 ---
 

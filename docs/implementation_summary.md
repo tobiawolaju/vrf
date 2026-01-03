@@ -1,31 +1,32 @@
-# Switchboard VRF Integration - Implementation Summary
+# Pyth Entropy VRF Integration - Implementation Summary
 
-## ✅ What's Been Built
+This document summarizes the transition to a **Trust-Minimal, Oracle-Native** VRF architecture using Pyth Entropy on Monad.
+
+## ✅ Core Implementation
 
 ### 1. Smart Contract Architecture
 **File:** `contracts/contracts/DiceRoller.sol`
 
-A streamlined contract designed for the **Monad Switchboard On-Demand** model.
-- `requestDiceRoll(roundId)`: The trigger. Emits an on-chain events that start the audit trail.
-- `submitVerifiedRoll(roundId, randomness)`: The judge. Accepts and validates verified randomness proofs from the Backend (Relayer).
-- `DiceRolled(roundId, result, proof)`: The proof. Records the 1-3 result and the source randomness permanently on-chain.
+A decentralized source of truth using the **Pyth Entropy** commit-reveal model.
+- `requestDiceRoll(roundId, userCommitment)`: **Step 1.** The player commits to a secret hash on-chain.
+- `entropyCallback(sequenceNumber, provider, randomNumber)`: **Step 2.** The final judge. This internal function is only callable by the Pyth Entropy contract after a valid reveal.
+- **On-Chain Logic:** The result is calculated as `(uint256(randomNumber) % 3) + 1`, ensuring the logic is immutable and transparent.
 
-**Model:** Pull-based (Request-Submit). This is the standard for high-performance randomness on Monad.
+### 2. Read-Only Backend (Indexer)
+**File:** `oracle-backend/server.js`
 
-### 2. Backend Relayer Integration
-**File:** `frontend/server.js`
+The backend has been completely stripped of all write permissions and private keys:
+- **Role:** Observes `DiceRequested` and `DiceRolled` events to update the game state for all players.
+- **Trust-Minimal:** Since it has no private keys, it cannot submit transactions, re-roll results, or intervene in the randomness flow.
+- **Scalable:** Acts as a lightweight event listener and cache provider.
 
-The backend serves as the autonomous relayer:
-- **Connected:** Monad Mainnet (Chain ID `143`).
-- **Autonomous:** Automatically detects the need for a roll, requests it on-chain, fetches verified proof, and submits it back to the contract.
-- **Contract Address:** [`0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea`](https://monadvision.com/address/0x466b833b1f3cD50A14bC34D68fAD6be996DC74Ea).
+### 3. Frontend Orchestration
+**File:** `frontend/src/lib/vrf.js`
 
-### 3. Verification & UI
-**File:** `frontend/src/components/RoundStatus.jsx`
-
-Every game round is cryptographically verifiable:
-- **On-Chain Audit:** Direct links to Monad Explorer for every dice roll.
-- **Fairness Proof:** Shows the raw randomness bytes alongside the simple 1-3 result.
+The player's browser is now the primary orchestrator:
+- **Commitment:** Generates a 32-byte secret locally and hashes it.
+- **Interaction:** Uses the player's own wallet to sign key transactions.
+- **Reveal:** Fetches the provider's secret from the Pyth Hermes API to finalize the roll.
 
 ---
 
@@ -33,10 +34,10 @@ Every game round is cryptographically verifiable:
 
 | Component | Status | Location |
 |-----------|--------|----------|
-| **DiceRoller Contract** | ✅ LIVE | `0x466b833b1f3cD50...` |
-| **Backend API** | ✅ LIVE | Port `3001` (local) / Vercel |
-| **Frontend UI** | ✅ LIVE | Port `5173` (local) / Vercel |
-| **Chain Connectivity** | ✅ ACTIVE | Monad Mainnet (ID `143`) |
+| **DiceRoller Contract** | ✅ LIVE | `0x131e56853F087F74Dbd59f7c6581cd57201a5f34` |
+| **Pyth Entropy** | ✅ LIVE | `0x98046Bd286715D3B0BC227Dd7a956b83D8978603` |
+| **Backend Indexer** | ✅ LIVE | Port `3001` (local) |
+| **State Synchronization** | ✅ ACTIVE | Via Monad Events |
 
 ---
 
@@ -44,36 +45,26 @@ Every game round is cryptographically verifiable:
 
 ```mermaid
 graph TD
-    A[Match Setup] --> B[Commit Phase]
-    B -->|Deadline Reached| C[Backend: Request Dice Roll]
-    C --> D[On-Chain: DiceRequested Event]
-    D --> E[Backend: Fetch Switchboard Proof]
-    E --> F[Backend: Submit Proof to Contract]
-    F --> G[On-Chain: Verify & Emit DiceRolled]
-    G --> H[Backend: Update Game State]
-    H --> I[Frontend: Display Verified Result]
+    A[Player: Generate userSecret] --> B[Player: Commit userSecret on-chain]
+    B --> C[Monad: Emit DiceRequested]
+    C --> D[Backend: Mark Round Pending]
+    B --> E[Player: Wait for oracleSecret]
+    E --> F[Player: Submit Reveal to Pyth]
+    F --> G[Pyth: Call DiceRoller.entropyCallback]
+    G --> H[Monad: Emit DiceRolled]
+    H --> I[Backend: Update Match Store]
+    I --> J[Frontend: Display Verified Result]
 ```
 
-### Verification Link Example
-Users can click "Verify on Monad" to see their specific roll:
-`https://monadvision.com/tx/0x03295c5541346bed54d1439875b48f5d82197a382f0fd84ece30c888b5b7df53`
-
 ---
 
-## 🧪 Testing Utilities
+## 🔐 Security & Trust Model
 
-The following tools are included in the repository for judges to verify the integration:
-
-1.  **`node roll-dice.js`**: Executes a complete on-chain VRF cycle (Request -> Submit -> Result).
-2.  **`node test.js`**: Validates 25+ API endpoints and game logic transitions.
-
----
-
-## 🔒 Security & Trust
-
--   **Backend Isolation:** The backend can ONLY submit verified proofs. It cannot "choose" the dice result.
--   **On-Chain Fairness:** The contract mapping of `randomness % 3 + 1` is public and immutable once deployed.
--   **TEE-Proven:** Randomness originates from Switchboard's Trusted Execution Environments.
+### Threat Modeling
+1. **Can the server cheat?** ❌ No. It has no private keys and cannot sign transactions.
+2. **Can Pyth cheat?** ❌ No. The result requires the player's secret to be revealed. Pyth does not know the player's secret until the player submits it.
+3. **Can the player cheat?** ❌ No. Once the player commits their hash to the chain, they cannot change their secret to manipulate the outcome.
+4. **Conclusion:** Providence of the dice roll is split between two parties (Player and Oracle), and verified by a third (the Smart Contract).
 
 ---
 
