@@ -9,7 +9,6 @@
         "dev": "node server.js"
     },
     "dependencies": {
-        "@switchboard-xyz/on-demand": "^3.7.3",
         "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "express": "^5.2.1",

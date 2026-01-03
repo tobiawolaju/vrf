@@ -3,8 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createWalletClient, http, publicActions, getContract } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import pkg from '@switchboard-xyz/on-demand';
-const { CrossbarClient } = pkg;
 
 dotenv.config();
 
@@ -17,6 +15,7 @@ const PORT = process.env.PORT || 3001;
 // --- Blockchain Config ---
 const CONTRACT_ADDRESS = "0x59921233Ed41da6c49936De3364BB064320999E4";
 const QUEUE_ID = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752";
+const CROSSBAR_URL = "https://crossbar.switchboard.xyz";
 
 const DICEROLLER_ABI = [
     {
@@ -59,7 +58,7 @@ const monadMainnet = {
     },
 };
 
-let adminWallet, contract, crossbar;
+let adminWallet, contract;
 
 // Initialize on startup
 function initializeClients() {
@@ -77,11 +76,24 @@ function initializeClients() {
             client: adminWallet
         });
 
-        crossbar = new CrossbarClient("https://crossbar.switchboard.xyz");
         console.log("✅ VRF Oracle Backend initialized");
     } catch (e) {
         console.error("❌ Failed to initialize:", e.message);
         process.exit(1);
+    }
+}
+
+// Fetch randomness proof from Switchboard Crossbar
+async function fetchSwitchboardProof(queueId) {
+    try {
+        const response = await fetch(`${CROSSBAR_URL}/fetch/${queueId}`);
+        if (!response.ok) {
+            throw new Error(`Crossbar fetch failed: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data.encoded[0]; // Get first encoded proof
+    } catch (error) {
+        throw new Error(`Failed to fetch Switchboard proof: ${error.message}`);
     }
 }
 
@@ -122,8 +134,7 @@ app.post('/api/fulfill-roll', async (req, res) => {
         console.log(`🔄 [Oracle] Fulfilling Roll: ${roundId}`);
 
         // Fetch proof from Switchboard
-        const result = await crossbar.fetch(QUEUE_ID);
-        const proof = result.encoded[0];
+        const proof = await fetchSwitchboardProof(QUEUE_ID);
 
         if (!proof) throw new Error("Failed to fetch proof from Switchboard");
 
@@ -178,8 +189,7 @@ app.post('/api/roll-dice', async (req, res) => {
         await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
 
         // 2. Fetch proof
-        const result = await crossbar.fetch(QUEUE_ID);
-        const proof = result.encoded[0];
+        const proof = await fetchSwitchboardProof(QUEUE_ID);
         if (!proof) throw new Error("Failed to fetch proof");
 
         // 3. Fulfill
