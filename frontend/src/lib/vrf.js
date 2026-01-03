@@ -90,8 +90,15 @@ export function getVRFConfig() {
                 client: adminWallet
             });
 
-            // Initialize Switchboard Client
-            crossbar = new CrossbarClient("https://crossbar.switchboard.xyz");
+            // Initialize Switchboard Client (with error handling for serverless)
+            try {
+                crossbar = new CrossbarClient("https://crossbar.switchboard.xyz");
+                console.log("✅ Switchboard CrossbarClient initialized");
+            } catch (crossbarError) {
+                console.warn("⚠️ CrossbarClient initialization failed (serverless environment?):", crossbarError.message);
+                console.warn("⚠️ VRF will use fallback mode");
+                crossbar = null;
+            }
 
             return { adminWallet, contract, DICEROLLER_ABI };
         } catch (e) {
@@ -144,6 +151,10 @@ async function _completeVrfRoll(context, db) {
     console.log(`   ⏳ Fetching Oracle Proof from Switchboard...`);
 
     // 2. FETCH PROOF FROM SWITCHBOARD
+    if (!crossbar) {
+        throw new Error("Switchboard CrossbarClient not available (serverless environment limitation). VRF cannot complete.");
+    }
+
     const result = await crossbar.fetch(QUEUE_ID);
 
     // Switchboard returns an array of encoded updates (proofs). We normally take the first one.
@@ -209,6 +220,11 @@ export async function retryFulfillment(gameCode, roundId, db) {
 
         // FETCH PROOF FROM SWITCHBOARD (REAL RECOVERY)
         console.log(`   ⏳ Fetching fresh Oracle Proof...`);
+        if (!crossbar) {
+            console.error("   ❌ CrossbarClient not available");
+            return { success: false, error: "Switchboard client unavailable" };
+        }
+
         const result = await crossbar.fetch(QUEUE_ID);
         const proof = result.encoded[0];
 
