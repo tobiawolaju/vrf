@@ -56,8 +56,31 @@ export const db = {
         return gameState;
     },
     getAllGames: async () => {
-        if (useRedis || useKV) return []; // Not implemented for distributed yet
+        if (useRedis) {
+            // Using a Set to track all active game codes is more efficient than SCAN game:*
+            const gameCodes = await redisClient.smembers('active_games');
+            const games = [];
+            for (const code of gameCodes) {
+                const game = await db.getGame(code);
+                if (game) games.push(game);
+                else await redisClient.srem('active_games', code); // Cleanup stale
+            }
+            return games;
+        }
+        if (useKV) {
+            const { keys } = await kvClient.keys('game:*');
+            const games = [];
+            for (const key of keys) {
+                const game = await kvClient.get(key);
+                if (game) games.push(game);
+            }
+            return games;
+        }
         return Array.from(global.gameRooms.values());
+    },
+    // Add game to active set
+    trackGame: async (gameCode) => {
+        if (useRedis) await redisClient.sadd('active_games', gameCode);
     },
     setSecret: async (roundId, userReveal) => {
         const EXPIRE_SECONDS = 3600; // 1 hour

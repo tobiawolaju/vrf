@@ -135,8 +135,7 @@ export function checkTimeouts(gameState) {
 }
 
 export function getPublicState(gameState, currentPlayerId) {
-    checkTimeouts(gameState);
-
+    // Moved checkTimeouts to centralized server crank to avoid distributed race conditions
     const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
 
     return {

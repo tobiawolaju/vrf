@@ -108,7 +108,13 @@ function App() {
                 const data = await res.json();
 
                 if (data.serverTime) {
-                    setServerSkew(data.serverTime - Date.now());
+                    const newSkew = data.serverTime - Date.now();
+                    // Stabilize skew: only update if it shifts by more than 2 seconds or if unset
+                    setServerSkew(prev => {
+                        if (prev === null) return newSkew;
+                        if (Math.abs(newSkew - prev) > 2000) return newSkew;
+                        return prev;
+                    });
                 }
 
                 // Sync local selection with server commitment if available

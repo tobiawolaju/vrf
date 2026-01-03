@@ -12,6 +12,7 @@ export default async function handler(req, res) {
         const gameState = initializeGame(startDelayMinutes || 1);
 
         await db.setGame(gameState.gameCode, gameState);
+        await db.trackGame(gameState.gameCode);
 
         res.status(200).json({ success: true, gameCode: gameState.gameCode });
     } catch (e) {

@@ -14,18 +14,6 @@ export default async function handler(req, res) {
         const gameState = await db.getGame(gameCode);
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
-        // Phase Transition Logic (Read-Only)
-        // If deadline passed in commit phase, move to rolling.
-        // The frontend leadership will detect this change and orchestrate the on-chain request.
-        if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline) {
-            gameState.phase = 'rolling';
-            // Each rolling phase needs a unique round ID for VRF binding
-            if (!gameState.currentRoundId) {
-                gameState.currentRoundId = Date.now().toString();
-            }
-            await db.setGame(gameCode, gameState);
-        }
-
         const publicState = getPublicState(gameState, playerId);
 
         // Update stats if game ended and not already recorded

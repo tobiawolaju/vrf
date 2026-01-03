@@ -155,124 +155,154 @@ function setupContractListener() {
         }
     });
 
-    // Periodic Crank: Check any pending sequences every 10s
+    // --- CRANK WORKERS ---
+
+    /**
+     * Game State Crank: Handles timeouts and phase transitions for all active games.
+     * This is the central authority to avoid distributed flickering.
+     */
+    async function processGameCrank() {
+        try {
+            const { checkTimeouts } = await import('./src/lib/gameLogic.js');
+            const games = await db.getAllGames();
+
+            for (const game of games) {
+                const originalState = JSON.stringify(game);
+
+                // 1. Check for standard timeouts (resolve -> commit, waiting -> commit)
+                checkTimeouts(game);
+
+                // 2. Custom Hardened Transition: commit -> rolling
+                if (game.phase === 'commit' && Date.now() > game.commitDeadline) {
+                    game.phase = 'rolling';
+                    if (!game.currentRoundId) {
+                        game.currentRoundId = Date.now().toString();
+                    }
+                }
+
+                // 3. Persist if state changed
+                if (JSON.stringify(game) !== originalState) {
+                    console.log(`⚙️ [Crank] Advancing Game ${game.gameCode} to ${game.phase} phase`);
+                    await db.setGame(game.gameCode, game);
+                }
+            }
+        } catch (e) {
+            console.error("❌ Game Crank Error:", e.message);
+        }
+    }
+
+    // Start Listeners
+    setupContractListener();
+
+    // Periodic Crank Loops
+    setInterval(processGameCrank, 2000); // Check games every 2s
     setInterval(() => {
         for (const [seq, roundId] of pendingSequences.entries()) {
             processReveal(seq, roundId);
         }
-    }, 10000);
-}
+    }, 5000); // Check reveals every 5s
 
-setupContractListener();
+    // --- API ROUTES ---
 
-// --- API ROUTES ---
+    /**
+     * Secret Submission: Players POST their bound secret here after committing.
+     */
+    app.post('/api/submit-secret', async (req, res) => {
+        const { roundId, userReveal } = req.body;
+        if (!roundId || !userReveal) return res.status(400).json({ error: 'Missing data' });
 
-/**
- * Secret Submission: Players POST their bound secret here after committing.
- */
-app.post('/api/submit-secret', async (req, res) => {
-    const { roundId, userReveal } = req.body;
-    if (!roundId || !userReveal) return res.status(400).json({ error: 'Missing data' });
+        console.log(`🔑 [API] Secret shared for round ${roundId}`);
+        roundSecrets.set(roundId.toString(), userReveal);
 
-    console.log(`🔑 [API] Secret shared for round ${roundId}`);
-    roundSecrets.set(roundId.toString(), userReveal);
-
-    // Check if we already have a pending sequence for this round
-    for (const [seq, rid] of pendingSequences.entries()) {
-        if (rid === roundId) {
-            processReveal(seq, rid);
-            break;
-        }
-    }
-
-    res.json({ success: true });
-});
-
-app.post('/api/create', async (req, res) => {
-    try {
-        const { startDelayMinutes } = req.body;
-        const gameState = initializeGame(startDelayMinutes || 1);
-        await db.setGame(gameState.gameCode, gameState);
-        res.json({ success: true, gameCode: gameState.gameCode });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-app.post('/api/join', async (req, res) => {
-    try {
-        const { gameCode, playerName, avatar, privyId, twitterHandle } = req.body;
-        const gameState = await db.getGame(gameCode);
-        if (!gameState) return res.status(404).json({ error: 'Game not found' });
-        if (gameState.phase !== 'waiting') return res.status(400).json({ error: 'Match already in progress' });
-
-        let playerId = privyId || generatePlayerId();
-        const existingPlayer = gameState.players.find(p => p.id === playerId);
-
-        if (existingPlayer) {
-            existingPlayer.connected = true;
-            await db.setGame(gameCode, gameState);
-            return res.json({ success: true, playerId, gameState: getPublicState(gameState, playerId) });
-        }
-
-        const newPlayer = {
-            id: playerId,
-            playerNumber: gameState.players.length,
-            name: playerName || `Player ${gameState.players.length + 1}`,
-            cards: [{ value: 1, isBurned: false }, { value: 2, isBurned: false }, { value: 3, isBurned: false }],
-            credits: 0,
-            connected: true,
-            avatar: avatar || null
-        };
-
-        gameState.players.push(newPlayer);
-        gameState.joinedCount++;
-        await db.setGame(gameCode, gameState);
-        res.json({ success: true, playerId, gameState: getPublicState(gameState, playerId) });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-app.post('/api/commit', async (req, res) => {
-    try {
-        const { gameCode, playerId, card, skip } = req.body;
-        const gameState = await db.getGame(gameCode);
-        if (!gameState || gameState.phase !== 'commit') return res.status(400).json({ error: 'Invalid state' });
-        const player = gameState.players.find(p => p.id === playerId);
-        if (!player) return res.status(400).json({ error: 'Invalid player' });
-        gameState.commitments[playerId] = skip ? { card: null, skip: true } : { card, skip: false };
-        await db.setGame(gameCode, gameState);
-        res.json({ success: true });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-app.get('/api/state', async (req, res) => {
-    try {
-        const { gameCode, playerId } = req.query;
-        const gameState = await db.getGame(gameCode);
-        if (!gameState) return res.status(404).json({ error: 'Game not found' });
-
-        if (gameState.phase === 'commit' && Date.now() > gameState.commitDeadline) {
-            gameState.phase = 'rolling';
-            if (!gameState.currentRoundId) {
-                gameState.currentRoundId = Date.now().toString();
+        // Check if we already have a pending sequence for this round
+        for (const [seq, rid] of pendingSequences.entries()) {
+            if (rid === roundId) {
+                processReveal(seq, rid);
+                break;
             }
-            await db.setGame(gameCode, gameState);
         }
 
-        res.json(getPublicState(gameState, playerId));
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
+        res.json({ success: true });
+    });
 
-app.listen(PORT, () => {
-    console.log(`🎲 Hardened Game Server + Crank running on port ${PORT}`);
-});
+    app.post('/api/create', async (req, res) => {
+        try {
+            const { startDelayMinutes } = req.body;
+            const gameState = initializeGame(startDelayMinutes || 1);
+            await db.setGame(gameState.gameCode, gameState);
+            await db.trackGame(gameState.gameCode);
+            res.json({ success: true, gameCode: gameState.gameCode });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.post('/api/join', async (req, res) => {
+        try {
+            const { gameCode, playerName, avatar, privyId, twitterHandle } = req.body;
+            const gameState = await db.getGame(gameCode);
+            if (!gameState) return res.status(404).json({ error: 'Game not found' });
+            if (gameState.phase !== 'waiting') return res.status(400).json({ error: 'Match already in progress' });
+
+            let playerId = privyId || generatePlayerId();
+            const existingPlayer = gameState.players.find(p => p.id === playerId);
+
+            if (existingPlayer) {
+                existingPlayer.connected = true;
+                await db.setGame(gameCode, gameState);
+                return res.json({ success: true, playerId, gameState: getPublicState(gameState, playerId) });
+            }
+
+            const newPlayer = {
+                id: playerId,
+                playerNumber: gameState.players.length,
+                name: playerName || `Player ${gameState.players.length + 1}`,
+                cards: [{ value: 1, isBurned: false }, { value: 2, isBurned: false }, { value: 3, isBurned: false }],
+                credits: 0,
+                connected: true,
+                avatar: avatar || null
+            };
+
+            gameState.players.push(newPlayer);
+            gameState.joinedCount++;
+            await db.setGame(gameCode, gameState);
+            res.json({ success: true, playerId, gameState: getPublicState(gameState, playerId) });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.post('/api/commit', async (req, res) => {
+        try {
+            const { gameCode, playerId, card, skip } = req.body;
+            const gameState = await db.getGame(gameCode);
+            if (!gameState || gameState.phase !== 'commit') return res.status(400).json({ error: 'Invalid state' });
+            const player = gameState.players.find(p => p.id === playerId);
+            if (!player) return res.status(400).json({ error: 'Invalid player' });
+            gameState.commitments[playerId] = skip ? { card: null, skip: true } : { card, skip: false };
+            await db.setGame(gameCode, gameState);
+            res.json({ success: true });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.get('/api/state', async (req, res) => {
+        try {
+            const { gameCode, playerId } = req.query;
+            const gameState = await db.getGame(gameCode);
+            if (!gameState) return res.status(404).json({ error: 'Game not found' });
+
+            res.json(getPublicState(gameState, playerId));
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    app.listen(PORT, () => {
+        console.log(`🎲 Hardened Game Server + Crank running on port ${PORT}`);
+    });
