@@ -219,3 +219,50 @@ export async function rollDice(gameCode, roundNumber, db) {
         throw error;
     }
 }
+/**
+ * RECOVERY: Called when a roll is stuck in 'rolling' state.
+ * Attempts to finish the Oracle job (Submit Randomness).
+ */
+export async function retryFulfillment(gameCode, roundId, db) {
+    try {
+        console.log(`🔄 [VRF] Retrying fulfillment for ${gameCode} (Round ${roundId})`);
+        const config = getVRFConfig();
+        if (!config) return;
+        const { contract, adminWallet } = config;
+
+        // 3. GENERATE & SUBMIT RANDOMNESS (Retry)
+        // We act as the Oracle here.
+        const mockRandomness = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')}`;
+
+        // We don't have the original request tx hash, but we can try to submit.
+        // If the request didn't happen on chain, this might fail, or it might just work if request is pending.
+        // Since we blindly retry, we assume request was mined.
+
+        console.log(`   🔄 Submitting Roll...`);
+        const subTxHash = await contract.write.submitVerifiedRoll([BigInt(roundId), mockRandomness]);
+        console.log(`   ✅ Retry Submit Sent: ${subTxHash}`);
+
+        // 4. WAIT FOR CONFIRMATION
+        await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
+
+        // Calculate result
+        const resultValue = Number((BigInt(mockRandomness) % 3n) + 1n);
+        console.log(`   🏁 Retry Finished! Result: ${resultValue}`);
+
+        // 5. RESOLVE STATE IN DB
+        if (db) {
+            const st = await db.getGame(gameCode);
+            if (st) {
+                resolveRound(st, resultValue, subTxHash);
+                await db.setGame(gameCode, st);
+                console.log(`   💾 Game state updated in DB (Recovery).`);
+            }
+        }
+        return { success: true, result: resultValue };
+    } catch (e) {
+        // If it fails (e.g. already submitted, or request invalid), we log but don't crash
+        // common error: "Request already fulfilled" or "Request not found"
+        console.error(`⚠️ [VRF] Retry failed: ${e.message}`);
+        return { success: false, error: e.message };
+    }
+}

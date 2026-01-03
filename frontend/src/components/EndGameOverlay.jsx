@@ -12,7 +12,7 @@ const EndGameOverlay = ({ winner }) => {
                     <h3>{winner.name} Wins!</h3>
                     <p>💰 {winner.credits} credits</p>
                 </div>
-                <button className="btn-primary" onClick={() => window.location.href = '/'}>
+                <button className="btn-play-again" onClick={() => window.location.href = '/'}>
                     Play Again
                 </button>
             </div>

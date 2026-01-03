@@ -27,6 +27,34 @@ export default async function handler(req, res) {
             });
         }
 
+        // RECOVERY MECHANISM (For Serverless Timeouts)
+        // If we are 'rolling' for more than 5 seconds, the background 'Oracle' probably died.
+        // We use this poll to retry the submission.
+        if (gameState.phase === 'rolling' && gameState.rollRequestedTime) {
+            const now = Date.now();
+            const elapsed = now - gameState.rollRequestedTime;
+
+            // Retry every 5 seconds if still stuck (but stop after 30s watchdog handles it)
+            if (elapsed > 5000 && elapsed < 30000) {
+                // Simple specific check to avoid spamming: only retry if NOT retrying recently?
+                // For simplicity, we just try. The nonce management in wallet might get tricky if spamming,
+                // but single-user polling is manageable.
+
+                // Only retry if we haven't tried in the last 5 seconds (store retry time?)
+                // Or just rely on the race - if one succeeds, state changes.
+                const lastRetry = gameState.lastRetryTime || 0;
+                if (now - lastRetry > 8000) {
+                    console.warn(`⚠️ [Vercel] Detected Stale Roll (${Math.floor(elapsed / 1000)}s). Retrying...`);
+                    gameState.lastRetryTime = now;
+                    await db.setGame(gameCode, gameState);
+
+                    // Import dynamically to avoid top-level issues if circular? No, standard import is fine.
+                    const { retryFulfillment } = await import('../src/lib/vrf.js');
+                    retryFulfillment(gameCode, gameState.round, db).catch(e => console.error(e));
+                }
+            }
+        }
+
         const publicState = getPublicState(gameState, playerId);
 
         // Update stats if game ended
