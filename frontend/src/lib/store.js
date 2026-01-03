@@ -56,8 +56,8 @@ export const db = {
         return gameState;
     },
     getAllGames: async () => {
-        // Not implemented for Redis/KV
-        return useRedis || useKV ? {} : global.gameRooms;
+        if (useRedis || useKV) return []; // Not implemented for distributed yet
+        return Array.from(global.gameRooms.values());
     },
 
     // --- LEADERBOARD LOGIC ---
@@ -121,8 +121,6 @@ export const db = {
 
             if (played > 0) {
                 // Calculate Win Ratio (percentage)
-                // We add a tiny fraction of 'played' count to break ties in favor of more games played
-                // e.g. 100% with 10 games > 100% with 1 game
                 const winRatio = (won / played) * 100;
                 const score = winRatio + (played * 0.0001);
 
@@ -131,9 +129,6 @@ export const db = {
                 } else if (useKV) {
                     await kvClient.zadd('leaderboard', { score: score, member: handle });
                 } else {
-                    // Update in-memory leaderboard array logic not optimal here, 
-                    // effective way is to just rebuild it on get or maintain a sorted list.
-                    // Let's just store the score in stats and sort on get.
                     const stats = global.playerStats.get(handle);
                     stats.score = score;
                     stats.winRate = winRatio; // Store pure ratio for display
@@ -146,7 +141,6 @@ export const db = {
     getLeaderboard: async () => {
         const CAP = 20; // Cap to Top 20
 
-        // 1. Redis Implementation
         if (useRedis) {
             const topMembers = await redisClient.zrevrange('leaderboard', 0, CAP - 1, 'WITHSCORES');
             const result = [];
@@ -154,18 +148,15 @@ export const db = {
                 result.push({
                     rank: (i / 2) + 1,
                     name: topMembers[i],
-                    winRate: Math.floor(parseFloat(topMembers[i + 1])).toFixed(1) // Remove tie-breaker decimal for display
+                    winRate: Math.floor(parseFloat(topMembers[i + 1])).toFixed(1)
                 });
             }
             return result;
         }
 
-        // 2. Vercel KV Implementation
         if (useKV) {
             const topMembers = await kvClient.zrange('leaderboard', 0, CAP - 1, { rev: true, withScores: true });
-            // Handle @vercel/kv generic return types
             if (Array.isArray(topMembers)) {
-                // If simple array [member, score, ...] (older versions/configs)
                 if (topMembers.length > 0 && typeof topMembers[0] === 'string') {
                     const result = [];
                     for (let i = 0; i < topMembers.length; i += 2) {
@@ -177,7 +168,6 @@ export const db = {
                     }
                     return result;
                 }
-                // If array of objects [{member, score}, ...] (newer)
                 return topMembers.map((item, index) => ({
                     rank: index + 1,
                     name: item.member,
@@ -187,17 +177,15 @@ export const db = {
             return [];
         }
 
-        // 3. In-Memory Fallback
         if (global.playerStats) {
-            // Convert Map to Array
             const sorted = Array.from(global.playerStats.entries())
                 .map(([name, stats]) => ({
                     name,
                     score: stats.score || 0,
                     winRate: stats.winRate || 0
                 }))
-                .sort((a, b) => b.score - a.score) // Sort descending
-                .slice(0, CAP); // Cap results
+                .sort((a, b) => b.score - a.score)
+                .slice(0, CAP);
 
             return sorted.map((item, index) => ({
                 rank: index + 1,

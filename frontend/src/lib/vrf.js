@@ -1,15 +1,23 @@
-import { createWalletClient, http, publicActions, getContract } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { keccak256, bytesToHex, hexToBytes } from 'viem';
 import { resolveRound } from './gameLogic.js';
-import dotenv from 'dotenv';
 
-dotenv.config();
+/**
+ * ORACLE-NATIVE VRF LIBRARY (FRONTEND)
+ * 
+ * This library handles the trust-minimal VRF flow using Pyth Entropy.
+ * The player's browser is responsible for:
+ * 1. Generating local entropy (commitment secret)
+ * 2. Requesting the roll on-chain
+ * 3. Fetching the oracle's secret from Pyth Hermes
+ * 4. Finalizing the roll on-chain
+ */
 
 // --- CONFIG ---
-const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34"; // Pyth Entropy DiceRoller
-const ORACLE_BACKEND_URL = process.env.ORACLE_BACKEND_URL || "http://localhost:3001";
+const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34"; // DiceRoller.sol
+const PYTH_ENTROPY_ADDRESS = "0x98046Bd286715D3B0BC227Dd7a956b83D8978603";
+const PYTH_PROVIDER = "0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344";
 
-const DICEROLLER_ABI = [
+export const DICEROLLER_ABI = [
     {
         "type": "function",
         "name": "requestDiceRoll",
@@ -29,171 +37,122 @@ const DICEROLLER_ABI = [
     },
     {
         "type": "function",
-        "name": "getDiceResult",
+        "name": "getDiceStatus",
         "inputs": [{ "name": "roundId", "type": "uint256" }],
         "outputs": [
-            { "name": "isFulfilled", "type": "bool" },
-            { "name": "result", "type": "uint8" }
+            { "name": "requested", "type": "bool" },
+            { "name": "fulfilled", "type": "bool" },
+            { "name": "result", "type": "uint8" },
+            { "name": "sequenceNumber", "type": "uint64" }
         ],
         "stateMutability": "view"
-    },
-    {
-        "type": "event",
-        "name": "DiceRequested",
-        "inputs": [
-            { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "sequenceNumber", "type": "uint64", "indexed": false },
-            { "name": "requester", "type": "address", "indexed": false }
-        ]
-    },
-    {
-        "type": "event",
-        "name": "DiceRolled",
-        "inputs": [
-            { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "result", "type": "uint8", "indexed": false },
-            { "name": "randomness", "type": "uint256", "indexed": false }
-        ]
     }
 ];
 
-const monadMainnet = {
-    id: 143,
-    name: 'Monad Mainnet',
-    network: 'monad-mainnet',
-    nativeCurrency: {
-        decimals: 18,
-        name: 'Monad',
-        symbol: 'MON',
-    },
-    rpcUrls: {
-        default: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
-        public: { http: [process.env.MONAD_RPC_URL || 'https://rpc-mainnet.monadinfra.com'] },
-    },
-    blockExplorers: {
-        default: { name: 'Monad Explorer', url: 'https://monadexplorer.com' },
-    },
-};
-
-let adminWallet = null;
-let contract = null;
-
-export function getVRFConfig() {
-    if (contract) return { adminWallet, contract, DICEROLLER_ABI };
-
-    if (process.env.ADMIN_PRIVATE_KEY) {
-        try {
-            const account = privateKeyToAccount(process.env.ADMIN_PRIVATE_KEY);
-            adminWallet = createWalletClient({
-                account,
-                chain: monadMainnet,
-                transport: http(),
-            }).extend(publicActions);
-
-            contract = getContract({
-                address: CONTRACT_ADDRESS,
-                abi: DICEROLLER_ABI,
-                client: adminWallet
-            });
-
-            return { adminWallet, contract, DICEROLLER_ABI };
-        } catch (e) {
-            console.error("❌ Failed to setup blockchain connection:", e.message);
-            return null;
-        }
+const PYTH_ABI = [
+    {
+        "type": "function",
+        "name": "revealWithCallback",
+        "inputs": [
+            { "name": "provider", "type": "address" },
+            { "name": "sequenceNumber", "type": "uint64" },
+            { "name": "userReveal", "type": "bytes32" },
+            { "name": "providerReveal", "type": "bytes32" }
+        ],
+        "outputs": [],
+        "stateMutability": "payable"
     }
-    return null;
+];
+
+/**
+ * Step 1: Generate Player Commitment
+ */
+export function generateVRFCommitment() {
+    const userRandom = crypto.getRandomValues(new Uint8Array(32));
+    const userRandomHex = bytesToHex(userRandom);
+    const userCommitment = keccak256(userRandomHex);
+    return { userRandomHex, userCommitment };
 }
 
 /**
- * Execute an on-chain roll by calling the dedicated oracle backend.
+ * Step 2: Request Roll (Player Signs)
  */
-export async function executeOnChainRoll(gameCode, roundNumber, db) {
+export async function requestRoll(roundId, userCommitment, walletClient, publicClient) {
     try {
-        console.log(`🎲 [VRF] Requesting roll from oracle backend: ${gameCode} | Round: ${roundNumber}`);
+        console.log(`🎲 [VRF] Requesting Roll for Round ${roundId}...`);
 
-        // Call the oracle backend
-        const response = await fetch(`${ORACLE_BACKEND_URL}/api/roll-dice`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gameCode, roundNumber })
+        const [account] = await walletClient.getAddresses();
+        const fee = await publicClient.readContract({
+            address: CONTRACT_ADDRESS,
+            abi: DICEROLLER_ABI,
+            functionName: 'getFee'
         });
 
-        const data = await response.json();
+        const hash = await walletClient.writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: DICEROLLER_ABI,
+            functionName: 'requestDiceRoll',
+            args: [BigInt(roundId), userCommitment],
+            value: fee,
+            account
+        });
 
-        if (!data.success) {
-            throw new Error(data.error || 'Oracle backend failed');
-        }
+        console.log(`   ✅ Request TX Sent: ${hash}`);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-        console.log(`   ✅ Roll Complete! Result: ${data.result} | TX: ${data.txHash}`);
-
-        // Update game state in DB
-        if (db) {
-            const st = await db.getGame(gameCode);
-            if (st) {
-                resolveRound(st, data.result, data.txHash);
-                await db.setGame(gameCode, st);
-                console.log(`   💾 Game state updated in DB.`);
-            }
-        }
-
-        return {
-            txHash: data.txHash,
-            roundId: data.roundId,
-            result: data.result
-        };
+        // Find sequenceNumber from logs if needed, or just poll DiceStatus later
+        return { success: true, hash, receipt };
     } catch (e) {
-        console.error("❌ executeOnChainRoll Error:", e.message);
-
-        // Attempt state recovery on failure
-        try {
-            const st = await db.getGame(gameCode);
-            if (st && st.rollRequested && st.phase === 'rolling') {
-                console.log(`   ↺ Reverting game state to 'commit' phase.`);
-                st.rollRequested = false;
-                st.phase = 'commit';
-                await db.setGame(gameCode, st);
-            }
-        } catch (dbErr) {
-            console.error("   ❌ Failed to revert game state:", dbErr.message);
-        }
-
-        throw e;
+        console.error("❌ requestRoll Error:", e.message);
+        return { success: false, error: e.message };
     }
 }
 
 /**
- * RECOVERY: Called when a roll is stuck in 'rolling' state.
+ * Step 3: Reveal (Player Signs)
  */
-export async function retryFulfillment(gameCode, roundId, db) {
+export async function finalizeRoll(roundId, userRandomHex, walletClient, publicClient) {
     try {
-        console.log(`🔄 [VRF] Retrying fulfillment via oracle backend for ${gameCode} (Round ${roundId})`);
+        console.log(`🔓 [VRF] Finalizing Roll for Round ${roundId}...`);
 
-        const response = await fetch(`${ORACLE_BACKEND_URL}/api/fulfill-roll`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roundId })
+        // 1. Get sequenceNumber from contract
+        const status = await publicClient.readContract({
+            address: CONTRACT_ADDRESS,
+            abi: DICEROLLER_ABI,
+            functionName: 'getDiceStatus',
+            args: [BigInt(roundId)]
         });
 
-        const data = await response.json();
+        if (!status.requested) throw new Error("Roll not requested yet");
+        if (status.fulfilled) return { success: true, alreadyFulfilled: true };
 
-        if (!data.success) {
-            return { success: false, error: data.error };
-        }
+        const sequenceNumber = status.sequenceNumber;
+        console.log(`   📝 Sequence Number: ${sequenceNumber}`);
 
-        // Update DB if we got a result
-        if (db && data.result) {
-            const st = await db.getGame(gameCode);
-            if (st && st.phase === 'rolling') {
-                resolveRound(st, data.result, data.txHash);
-                await db.setGame(gameCode, st);
-                console.log(`   💾 Game state updated in DB (Recovery).`);
-            }
-        }
+        // 2. Fetch Provider Reveal from Pyth Hermes API
+        console.log("   📡 Fetching Pyth provider reveal...");
+        const revealResponse = await fetch(`https://hermes.pyth.network/v2/entropy/ops/reveal?sequence_number=${sequenceNumber}`);
+        if (!revealResponse.ok) throw new Error("Failed to fetch reveal from Pyth Hermes");
 
-        return { success: true, result: data.result };
+        const revealData = await revealResponse.json();
+        const providerReveal = revealData.provider_reveal;
+
+        // 3. Reveal with Callback (Player Signs)
+        const [account] = await walletClient.getAddresses();
+        const hash = await walletClient.writeContract({
+            address: PYTH_ENTROPY_ADDRESS,
+            abi: PYTH_ABI,
+            functionName: 'revealWithCallback',
+            args: [PYTH_PROVIDER, sequenceNumber, userRandomHex, providerReveal],
+            account
+        });
+
+        console.log(`   ✅ Reveal TX Sent: ${hash}`);
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        return { success: true, hash };
     } catch (e) {
-        console.error(`⚠️ [VRF] Retry failed: ${e.message}`);
+        console.error("❌ finalizeRoll Error:", e.message);
         return { success: false, error: e.message };
     }
 }

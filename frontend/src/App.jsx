@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { usePrivy } from '@privy-io/react-auth';
+import { useWalletClient, usePublicClient } from 'wagmi';
+import { generateVRFCommitment, requestRoll, finalizeRoll } from './lib/vrf';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
@@ -15,6 +17,9 @@ const API_BASE = '/api';
 
 function App() {
     const { login, logout, authenticated, user } = usePrivy();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
+
     const [view, setView] = useState('home');
     const [gameCode, setGameCode] = useState('');
     const [playerId, setPlayerId] = useState('');
@@ -27,9 +32,56 @@ function App() {
     const [joinCode, setJoinCode] = useState('');
     const [selectedCard, setSelectedCard] = useState(null);
 
+    // VRF Flow State
+    const vrfInProgress = useRef(null); // stores the currentRoundId being processed
+    const userRandomRef = useRef(null); // stores local secret
+
     // Animation states
     const [visualRoll, setVisualRoll] = useState(1);
     const [isRolling, setIsRolling] = useState(false);
+
+    // --- ORACLE NATIVE VRF FLOW ---
+    useEffect(() => {
+        if (!gameState || gameState.phase !== 'rolling' || !walletClient || !publicClient) return;
+        if (vrfInProgress.current === gameState.currentRoundId) return;
+
+        const handleVRF = async () => {
+            const roundId = gameState.currentRoundId;
+            console.log(`🤖 [VRF] Auto-Orchestrating Round ${roundId}`);
+            vrfInProgress.current = roundId;
+
+            try {
+                // 1. Commit Phase (if not already requested)
+                const { userRandomHex, userCommitment } = generateVRFCommitment();
+                userRandomRef.current = userRandomHex;
+
+                const res = await requestRoll(roundId, userCommitment, walletClient, publicClient);
+                if (!res.success) {
+                    // It's possible someone else requested it already, which is fine
+                    console.warn("   ⚠️ Request failed (maybe already done?):", res.error);
+                }
+
+                // 2. Reveal Phase
+                // Pyth provider reveals after commitment is confirmed.
+                // We wait a bit or poll for the sequenceNumber.
+                let attempts = 0;
+                while (attempts < 5) {
+                    const status = await finalizeRoll(roundId, userRandomRef.current, walletClient, publicClient);
+                    if (status.success) {
+                        console.log("   ✅ VRF Flow Complete!");
+                        break;
+                    }
+                    attempts++;
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            } catch (err) {
+                console.error("   ❌ VRF Orchestration Failed:", err);
+                vrfInProgress.current = null; // Allow retry
+            }
+        };
+
+        handleVRF();
+    }, [gameState?.phase, gameState?.currentRoundId, walletClient, publicClient]);
 
     // Poll game state
     useEffect(() => {

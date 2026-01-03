@@ -102,6 +102,7 @@ export function advanceRound(gameState) {
     gameState.round++;
     gameState.commitments = {};
     gameState.lastRoll = null;
+    gameState.currentRoundId = null; // Clear for next round
     gameState.phase = 'commit';
     gameState.commitDeadline = Date.now() + 25000;
 }
@@ -165,10 +166,12 @@ export function getPublicState(gameState, currentPlayerId) {
             : null,
         round: gameState.round,
         phase: gameState.phase,
+        currentRoundId: gameState.currentRoundId, // Required for VRF orchestration
         commitDeadline: gameState.commitDeadline,
         resolveDeadline: gameState.resolveDeadline,
         startDeadline: gameState.startDeadline,
         lastRoll: gameState.lastRoll,
+        lastRollTxHash: gameState.lastRollTxHash,
         serverTime: Date.now(),
         winner:
             gameState.phase === 'ended'
