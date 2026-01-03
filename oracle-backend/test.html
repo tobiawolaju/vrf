@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRF Oracle Backend Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #ffd700;
+        }
+
+        .success {
+            color: #4ade80;
+        }
+
+        .error {
+            color: #f87171;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎲 VRF Oracle Test</h1>
+
+        <div class="test-section">
+            <h2>1. Health Check</h2>
+            <button onclick="testHealth()">Test Health Endpoint</button>
+            <div id="health-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Request Dice Roll</h2>
+            <label>Game Code:</label>
+            <input type="text" id="gameCode" placeholder="TEST123" value="TEST123">
+            <label>Round Number:</label>
+            <input type="number" id="roundNumber" placeholder="1" value="1">
+            <button onclick="testRequestRoll()">Request Roll</button>
+            <div id="request-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Full Dice Roll (Request + Fulfill)</h2>
+            <p style="font-size: 14px; opacity: 0.8;">⚠️ This will create an actual on-chain transaction!</p>
+            <label>Game Code:</label>
+            <input type="text" id="fullGameCode" placeholder="TEST123" value="TEST123">
+            <label>Round Number:</label>
+            <input type="number" id="fullRoundNumber" placeholder="1" value="1">
+            <button onclick="testFullRoll()">Execute Full Roll</button>
+            <div id="full-result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://vrf-oracle-backend.onrender.com';
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        async function testHealth() {
+            showResult('health-result', 'Loading...', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                showResult('health-result', JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                showResult('health-result', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRequestRoll() {
+            const gameCode = document.getElementById('gameCode').value;
+            const roundNumber = parseInt(document.getElementById('roundNumber').value);
+
+            showResult('request-result', 'Sending request...', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/request-roll`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameCode, roundNumber })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('request-result',
+                        `✅ Success!\n\nRound ID: ${data.roundId}\nTX Hash: ${data.txHash}\n\nFull Response:\n${JSON.stringify(data, null, 2)}`,
+                        'success'
+                    );
+                } else {
+                    showResult('request-result', `❌ Failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('request-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullRoll() {
+            const gameCode = document.getElementById('fullGameCode').value;
+            const roundNumber = parseInt(document.getElementById('fullRoundNumber').value);
+
+            showResult('full-result', '🎲 Rolling dice... (this may take 10-30 seconds)', 'loading');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/roll-dice`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameCode, roundNumber })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('full-result',
+                        `🎉 Dice Rolled!\n\n🎲 Result: ${data.result}\n\nRound ID: ${data.roundId}\nTX Hash: ${data.txHash}\n\nView on Explorer:\nhttps://monadexplorer.com/tx/${data.txHash}\n\nFull Response:\n${JSON.stringify(data, null, 2)}`,
+                        'success'
+                    );
+                } else {
+                    showResult('full-result', `❌ Failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('full-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
