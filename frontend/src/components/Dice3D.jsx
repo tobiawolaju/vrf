@@ -6,12 +6,12 @@ const Dice3D = ({ roll, isRolling, onDragOver, onDrop }) => {
         <div className="die-area" onDragOver={onDragOver} onDrop={onDrop}>
             <div className="die-display">
                 <div className={`die-cube ${isRolling ? 'rolling' : ''}`} data-roll={roll}>
-                    <div className="face front">1</div>
-                    <div className="face back">6</div>
-                    <div className="face right">3</div>
-                    <div className="face left">4</div>
-                    <div className="face top">5</div>
-                    <div className="face bottom">2</div>
+                    <div className="face front">⚀</div>
+                    <div className="face back">⚅</div>
+                    <div className="face right">⚂</div>
+                    <div className="face left">⚃</div>
+                    <div className="face top">⚄</div>
+                    <div className="face bottom">⚁</div>
                 </div>
             </div>
         </div>
