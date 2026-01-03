@@ -252,10 +252,12 @@ export async function retryFulfillment(gameCode, roundId, db) {
         // 5. RESOLVE STATE IN DB
         if (db) {
             const st = await db.getGame(gameCode);
-            if (st) {
+            if (st && st.phase === 'rolling') {
                 resolveRound(st, resultValue, subTxHash);
                 await db.setGame(gameCode, st);
                 console.log(`   💾 Game state updated in DB (Recovery).`);
+            } else {
+                console.log(`   ⚠️ Game already resolved or invalid state. Skipping DB update.`);
             }
         }
         return { success: true, result: resultValue };
