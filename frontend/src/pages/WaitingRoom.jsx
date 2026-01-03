@@ -10,7 +10,7 @@ const WaitingRoom = ({ gameState, waitTimeLeft, gameCode }) => {
         <div className="home-container">
             <div className="lobby-card">
                 <button className="btn-back-home" onClick={() => setView('home')}>
-                    ← ESCAPE
+                    ← BACK
                 </button>
                 <div className="lobby-header">
                     <h1 className="lobby-title">Lobby</h1>
