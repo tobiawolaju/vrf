@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\A_Projects\\vrf\\contracts\\contracts\\DiceRoller.sol": {
-      "lastModificationDate": 1767435075161,
-      "contentHash": "2f2c412e9db8f8852bd963f609f699a0",
+      "lastModificationDate": 1767438862433,
+      "contentHash": "ec13190fc4c20ce34bdc89924d5b988b",
       "sourceName": "contracts/DiceRoller.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -30,8 +30,8 @@
         }
       },
       "imports": [
-        "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol",
-        "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol"
+        "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol",
+        "@pythnetwork/entropy-sdk-solidity/IEntropy.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
@@ -148,6 +148,271 @@
       ],
       "artifacts": [
         "SimpleCounter"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\IEntropyConsumer.sol": {
+      "lastModificationDate": 1767438879723,
+      "contentHash": "204e26c16f0a9ae5f37e8181100c5c35",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IEntropyConsumer"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\IEntropy.sol": {
+      "lastModificationDate": 1767438879723,
+      "contentHash": "0ca404d759c5e2088da2c0912a4aec52",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/IEntropy.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EntropyEvents.sol",
+        "./EntropyEventsV2.sol",
+        "./EntropyStructsV2.sol",
+        "./IEntropyV2.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IEntropy"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\EntropyEventsV2.sol": {
+      "lastModificationDate": 1767438879655,
+      "contentHash": "8857eb87a988a7db9e350b758dd4a147",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/EntropyEventsV2.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EntropyStructs.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "EntropyEventsV2"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\IEntropyV2.sol": {
+      "lastModificationDate": 1767438879754,
+      "contentHash": "2b81426d7b4ec98afb60743ee25c9bf9",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/IEntropyV2.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EntropyEvents.sol",
+        "./EntropyEventsV2.sol",
+        "./EntropyStructsV2.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IEntropyV2"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\EntropyStructsV2.sol": {
+      "lastModificationDate": 1767438879706,
+      "contentHash": "80b4a67b52ff94312b225eb5581e15fb",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/EntropyStructsV2.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "EntropyStructsV2"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\EntropyEvents.sol": {
+      "lastModificationDate": 1767438879539,
+      "contentHash": "37a174ee1ccf280ecc0d91670a81c54d",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/EntropyEvents.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EntropyStructs.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "EntropyEvents"
+      ]
+    },
+    "D:\\A_Projects\\vrf\\contracts\\node_modules\\@pythnetwork\\entropy-sdk-solidity\\EntropyStructs.sol": {
+      "lastModificationDate": 1767438879690,
+      "contentHash": "ae0a65ed84e16364a7a4356173a238da",
+      "sourceName": "@pythnetwork/entropy-sdk-solidity/EntropyStructs.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "EntropyStructs"
       ]
     }
   }

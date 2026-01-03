@@ -1,71 +1,113 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// Removed invalid import. We define the callback interface implicitly by enforcing msg.sender check.
+import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
-import { ISwitchboard } from "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol";
-import { SwitchboardTypes } from "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol";
-
-contract DiceRoller {
+/**
+ * @title DiceRoller
+ * @notice Dice rolling contract using Pyth Entropy for verifiable randomness
+ */
+contract DiceRoller is IEntropyConsumer {
     // --- Errors ---
     error AlreadyFulfilled(uint256 roundId);
     error InvalidRandomness();
-    error RandomnessNotSettled();
+    error InsufficientFee(uint128 required, uint256 provided);
+    error Unauthorized();
 
     // --- Events ---
-    event DiceRequested(uint256 indexed roundId, address requester);
+    event DiceRequested(uint256 indexed roundId, uint64 sequenceNumber, address requester);
     event DiceRolled(uint256 indexed roundId, uint8 result, uint256 randomness);
 
-    // --- Switchboard State ---
-    ISwitchboard public immutable switchboard;
-    bytes32 public immutable queueId; // Kept for reference, though createRandomness might auto-select
-
+    // --- State ---
+    IEntropy public immutable entropy;
+    address public immutable entropyProvider;
+    
     // Map roundId -> result (0 if pending)
     mapping(uint256 => uint8) public diceResults;
+    
+    // Map roundId -> sequenceNumber (for tracking Pyth requests)
+    mapping(uint256 => uint64) public roundToSequence;
+    
+    // Map sequenceNumber -> roundId (for callback)
+    mapping(uint64 => uint256) public sequenceToRound;
 
-    constructor(address _switchboard, bytes32 _queueId) {
-        switchboard = ISwitchboard(_switchboard);
-        queueId = _queueId;
+    constructor(address _entropy, address _entropyProvider) {
+        entropy = IEntropy(_entropy);
+        entropyProvider = _entropyProvider;
     }
 
     /**
-     * @notice Requests randomness for a specific game round.
-     * @param roundId The unique round identifier.
+     * @notice Get the fee required for requesting randomness
      */
-    function requestDiceRoll(uint256 roundId) external {
-        if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
-        
-        // Just emit event - the oracle backend will handle the Switchboard interaction
-        emit DiceRequested(roundId, msg.sender);
+    function getFee() public view returns (uint128) {
+        return entropy.getFee(entropyProvider);
     }
 
     /**
-     * @notice Fulfills the randomness request using a Switchboard Proof.
-     * @param roundId The round ID this proof is for.
-     * @param proof The cryptographic proof (encoded randomness) from Switchboard.
+     * @notice Request a dice roll using Pyth Entropy
+     * @param roundId The unique round identifier
+     * @param userCommitment User's random commitment (keccak256 of random bytes)
      */
-    function fulfillRandomness(uint256 roundId, bytes calldata proof) external {
+    function requestDiceRoll(uint256 roundId, bytes32 userCommitment) external payable {
         if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
-
-        // For now, we extract randomness from the proof bytes directly
-        // In a full implementation, you would verify the proof signatures
-        // The proof format from Switchboard contains the randomness value
         
-        // Simple extraction: hash the proof to get randomness
-        uint256 randomness = uint256(keccak256(proof));
-        if (randomness == 0) revert InvalidRandomness();
+        uint128 fee = getFee();
+        if (msg.value < fee) revert InsufficientFee(fee, msg.value);
+
+        // Request randomness from Pyth Entropy
+        uint64 sequenceNumber = entropy.requestWithCallback{value: fee}(
+            entropyProvider,
+            userCommitment
+        );
+
+        // Store mappings
+        roundToSequence[roundId] = sequenceNumber;
+        sequenceToRound[sequenceNumber] = roundId;
+
+        emit DiceRequested(roundId, sequenceNumber, msg.sender);
+
+        // Refund excess payment
+        if (msg.value > fee) {
+            payable(msg.sender).transfer(msg.value - fee);
+        }
+    }
+
+    /**
+     * @notice Callback function called by Pyth Entropy with the random number
+     * @param sequenceNumber The sequence number of the request
+     * @param randomNumber The generated random number
+     */
+    function entropyCallback(
+        uint64 sequenceNumber,
+        address, // provider (unused)
+        bytes32 randomNumber
+    ) internal override {
+        uint256 roundId = sequenceToRound[sequenceNumber];
+        
+        if (randomNumber == bytes32(0)) revert InvalidRandomness();
 
         // Derive dice result (1-3)
-        uint8 result = uint8((randomness % 3) + 1);
+        uint8 result = uint8((uint256(randomNumber) % 3) + 1);
 
         // Store result
         diceResults[roundId] = result;
-        emit DiceRolled(roundId, result, randomness);
+        
+        emit DiceRolled(roundId, result, uint256(randomNumber));
     }
 
+    /**
+     * @notice Get the Entropy contract address (required by IEntropyConsumer)
+     */
+    function getEntropy() internal view override returns (address) {
+        return address(entropy);
+    }
+
+    /**
+     * @notice Get dice result for a round
+     */
     function getDiceResult(uint256 roundId) external view returns (bool isFulfilled, uint8 result) {
         result = diceResults[roundId];
         isFulfilled = result != 0;
     }
 }
-

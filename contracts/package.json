@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@pythnetwork/entropy-sdk-solidity": "^2.2.1",
     "@switchboard-xyz/on-demand-solidity": "^1.1.0",
     "dotenv": "^16.4.5"
   },

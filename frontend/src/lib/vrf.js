@@ -6,16 +6,45 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // --- CONFIG ---
-const CONTRACT_ADDRESS = "0xA4F622c0C40903115beD1c19aD7fE74FaddBa354";
+const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34"; // Pyth Entropy DiceRoller
 const ORACLE_BACKEND_URL = process.env.ORACLE_BACKEND_URL || "http://localhost:3001";
 
 const DICEROLLER_ABI = [
     {
         "type": "function",
         "name": "requestDiceRoll",
-        "inputs": [{ "name": "roundId", "type": "uint256" }],
+        "inputs": [
+            { "name": "roundId", "type": "uint256" },
+            { "name": "userCommitment", "type": "bytes32" }
+        ],
         "outputs": [],
-        "stateMutability": "nonpayable"
+        "stateMutability": "payable"
+    },
+    {
+        "type": "function",
+        "name": "getFee",
+        "inputs": [],
+        "outputs": [{ "name": "", "type": "uint128" }],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getDiceResult",
+        "inputs": [{ "name": "roundId", "type": "uint256" }],
+        "outputs": [
+            { "name": "isFulfilled", "type": "bool" },
+            { "name": "result", "type": "uint8" }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "DiceRequested",
+        "inputs": [
+            { "name": "roundId", "type": "uint256", "indexed": true },
+            { "name": "sequenceNumber", "type": "uint64", "indexed": false },
+            { "name": "requester", "type": "address", "indexed": false }
+        ]
     },
     {
         "type": "event",
@@ -24,8 +53,7 @@ const DICEROLLER_ABI = [
             { "name": "roundId", "type": "uint256", "indexed": true },
             { "name": "result", "type": "uint8", "indexed": false },
             { "name": "randomness", "type": "uint256", "indexed": false }
-        ],
-        "anonymous": false
+        ]
     }
 ];
 

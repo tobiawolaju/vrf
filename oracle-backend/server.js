@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { createWalletClient, http, publicActions, getContract, decodeEventLog } from 'viem';
+import { createWalletClient, http, publicActions, getContract, decodeEventLog, parseEther } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 dotenv.config();
@@ -12,28 +12,56 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// --- Blockchain Config ---
-const CONTRACT_ADDRESS = "0xA4F622c0C40903115beD1c19aD7fE74FaddBa354";
-const QUEUE_ID = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752";
-const CROSSBAR_URL = "https://crossbar.switchboard.xyz";
+// --- Pyth Entropy Config ---
+const ENTROPY_CONTRACT = "0x98046Bd286715D3B0BC227Dd7a956b83D8978603"; // Monad Mainnet
+const ENTROPY_PROVIDER = "0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344"; // Default Pyth provider
+
+// --- Contract Config ---
+const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34"; // Pyth Entropy DiceRoller
 
 const DICEROLLER_ABI = [
     {
-        "type": "function",
-        "name": "requestDiceRoll",
-        "inputs": [{ "name": "roundId", "type": "uint256" }],
-        "outputs": [],
-        "stateMutability": "nonpayable"
+        "type": "constructor",
+        "inputs": [
+            { "name": "_entropy", "type": "address" },
+            { "name": "_entropyProvider", "type": "address" }
+        ]
     },
     {
         "type": "function",
-        "name": "fulfillRandomness",
+        "name": "requestDiceRoll",
         "inputs": [
             { "name": "roundId", "type": "uint256" },
-            { "name": "proof", "type": "bytes" }
+            { "name": "userCommitment", "type": "bytes32" }
         ],
         "outputs": [],
-        "stateMutability": "nonpayable"
+        "stateMutability": "payable"
+    },
+    {
+        "type": "function",
+        "name": "getFee",
+        "inputs": [],
+        "outputs": [{ "name": "", "type": "uint128" }],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getDiceResult",
+        "inputs": [{ "name": "roundId", "type": "uint256" }],
+        "outputs": [
+            { "name": "isFulfilled", "type": "bool" },
+            { "name": "result", "type": "uint8" }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "DiceRequested",
+        "inputs": [
+            { "name": "roundId", "type": "uint256", "indexed": true },
+            { "name": "sequenceNumber", "type": "uint64", "indexed": false },
+            { "name": "requester", "type": "address", "indexed": false }
+        ]
     },
     {
         "type": "event",
@@ -42,8 +70,7 @@ const DICEROLLER_ABI = [
             { "name": "roundId", "type": "uint256", "indexed": true },
             { "name": "result", "type": "uint8", "indexed": false },
             { "name": "randomness", "type": "uint256", "indexed": false }
-        ],
-        "anonymous": false
+        ]
     }
 ];
 
@@ -76,48 +103,107 @@ function initializeClients() {
             client: adminWallet
         });
 
-        console.log("✅ VRF Oracle Backend initialized");
+        console.log("✅ Pyth Entropy VRF Oracle Backend initialized");
+        console.log(`   Contract: ${CONTRACT_ADDRESS}`);
+        console.log(`   Entropy: ${ENTROPY_CONTRACT}`);
+        console.log(`   Provider: ${ENTROPY_PROVIDER}`);
     } catch (e) {
         console.error("❌ Failed to initialize:", e.message);
         process.exit(1);
     }
 }
 
-// Generate random proof bytes
-// Since our contract just hashes the proof anyway, we can generate random bytes
-// In a production system, this would fetch from Switchboard's oracle network
-function generateRandomProof() {
+// Generate random commitment for user
+function generateUserCommitment() {
     // Generate 32 random bytes
     const randomBytes = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
         randomBytes[i] = Math.floor(Math.random() * 256);
     }
     // Convert to hex string with 0x prefix
-    return '0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const commitment = '0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return commitment;
 }
 
 // --- API Endpoints ---
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'vrf-oracle-backend' });
+    res.json({
+        status: 'ok',
+        service: 'pyth-entropy-vrf-oracle',
+        entropy: ENTROPY_CONTRACT,
+        provider: ENTROPY_PROVIDER
+    });
 });
 
-// Request a dice roll (creates on-chain request)
+// Get the fee required for a VRF request
+app.get('/api/get-fee', async (req, res) => {
+    try {
+        const fee = await contract.read.getFee();
+        res.json({
+            success: true,
+            fee: fee.toString(),
+            feeInEther: (Number(fee) / 1e18).toFixed(6)
+        });
+    } catch (error) {
+        console.error("❌ Get Fee Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Request a dice roll (commit phase)
 app.post('/api/request-roll', async (req, res) => {
     try {
         const { gameCode, roundNumber } = req.body;
         const roundId = BigInt(Date.now());
 
-        console.log(`🎲 [Oracle] Request Roll: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
+        console.log(`🎲 [Pyth Entropy] Request Roll: ${gameCode} | Round: ${roundNumber} | ID: ${roundId}`);
 
-        const reqTxHash = await contract.write.requestDiceRoll([roundId]);
-        console.log(`   ✅ Request Sent: ${reqTxHash}`);
+        // Generate user commitment
+        const userCommitment = generateUserCommitment();
+
+        // Get required fee
+        const fee = await contract.read.getFee();
+        console.log(`   💰 Fee Required: ${(Number(fee) / 1e18).toFixed(6)} MON`);
+
+        // Request dice roll with commitment
+        const txHash = await contract.write.requestDiceRoll(
+            [roundId, userCommitment],
+            { value: fee }
+        );
+
+        console.log(`   ✅ Commit Transaction Sent: ${txHash}`);
+
+        // Wait for confirmation
+        const receipt = await adminWallet.waitForTransactionReceipt({ hash: txHash });
+
+        // Parse event to get sequence number
+        let sequenceNumber = null;
+        for (const log of receipt.logs) {
+            try {
+                const decoded = decodeEventLog({
+                    abi: DICEROLLER_ABI,
+                    data: log.data,
+                    topics: log.topics
+                });
+                if (decoded.eventName === 'DiceRequested') {
+                    sequenceNumber = decoded.args.sequenceNumber;
+                    break;
+                }
+            } catch (e) {
+                // Not the event we're looking for
+            }
+        }
+
+        console.log(`   📝 Sequence Number: ${sequenceNumber}`);
 
         res.json({
             success: true,
             roundId: roundId.toString(),
-            txHash: reqTxHash
+            sequenceNumber: sequenceNumber?.toString(),
+            txHash: txHash,
+            commitment: userCommitment
         });
     } catch (error) {
         console.error("❌ Request Roll Error:", error.message);
@@ -125,90 +211,60 @@ app.post('/api/request-roll', async (req, res) => {
     }
 });
 
-// Fulfill a dice roll (fetches proof and submits)
-app.post('/api/fulfill-roll', async (req, res) => {
+// Check if a roll is fulfilled
+app.get('/api/check-result/:roundId', async (req, res) => {
     try {
-        const { roundId } = req.body;
+        const { roundId } = req.params;
 
-        console.log(`🔄 [Oracle] Fulfilling Roll: ${roundId}`);
-
-        // Fetch proof from Switchboard
-        const proof = generateRandomProof();
-
-        if (!proof) throw new Error("Failed to fetch proof from Switchboard");
-
-        console.log(`   📦 Proof Received`);
-
-        // Submit to contract
-        const subTxHash = await contract.write.fulfillRandomness([BigInt(roundId), proof]);
-        console.log(`   ✅ Fulfillment Sent: ${subTxHash}`);
-
-        // Wait for confirmation
-        const receipt = await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
-
-        // Parse event to get result
-        let diceResult = null;
-
-        for (const log of receipt.logs) {
-            try {
-                const decoded = decodeEventLog({
-                    abi: DICEROLLER_ABI,
-                    data: log.data,
-                    topics: log.topics
-                });
-                if (decoded.eventName === 'DiceRolled') {
-                    diceResult = Number(decoded.args.result);
-                    break;
-                }
-            } catch (e) {
-                // Not the event we're looking for
-            }
-        }
-
-        console.log(`   🏁 Roll Complete! Result: ${diceResult}`);
+        const [isFulfilled, result] = await contract.read.getDiceResult([BigInt(roundId)]);
 
         res.json({
             success: true,
-            result: diceResult,
-            txHash: subTxHash
+            roundId,
+            isFulfilled,
+            result: isFulfilled ? Number(result) : null
         });
     } catch (error) {
-        console.error("❌ Fulfill Roll Error:", error.message);
+        console.error("❌ Check Result Error:", error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Combined endpoint: request + fulfill in one call
+// Combined endpoint: request and wait for result
 app.post('/api/roll-dice', async (req, res) => {
     try {
         const { gameCode, roundNumber } = req.body;
         const roundId = BigInt(Date.now());
 
-        console.log(`🎲 [Oracle] Full Roll: ${gameCode} | Round: ${roundNumber}`);
+        console.log(`🎲 [Pyth Entropy] Full Roll: ${gameCode} | Round: ${roundNumber}`);
 
-        // 1. Request
-        const reqTxHash = await contract.write.requestDiceRoll([roundId]);
-        await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
+        // 1. Generate user commitment
+        const userCommitment = generateUserCommitment();
 
-        // 2. Fetch proof
-        const proof = generateRandomProof();
-        if (!proof) throw new Error("Failed to fetch proof");
+        // 2. Get required fee
+        const fee = await contract.read.getFee();
+        console.log(`   💰 Fee: ${(Number(fee) / 1e18).toFixed(6)} MON`);
 
-        // 3. Fulfill
-        const subTxHash = await contract.write.fulfillRandomness([roundId, proof]);
-        const receipt = await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
+        // 3. Request dice roll (commit phase)
+        const reqTxHash = await contract.write.requestDiceRoll(
+            [roundId, userCommitment],
+            { value: fee }
+        );
+        console.log(`   ✅ Commit Sent: ${reqTxHash}`);
 
-        // 4. Parse result
-        let diceResult = null;
-        for (const log of receipt.logs) {
+        const reqReceipt = await adminWallet.waitForTransactionReceipt({ hash: reqTxHash });
+
+        // Parse sequence number
+        let sequenceNumber = null;
+        for (const log of reqReceipt.logs) {
             try {
                 const decoded = decodeEventLog({
                     abi: DICEROLLER_ABI,
                     data: log.data,
                     topics: log.topics
                 });
-                if (decoded.eventName === 'DiceRolled') {
-                    diceResult = Number(decoded.args.result);
+                if (decoded.eventName === 'DiceRequested') {
+                    sequenceNumber = decoded.args.sequenceNumber;
                     break;
                 }
             } catch (e) {
@@ -216,13 +272,38 @@ app.post('/api/roll-dice', async (req, res) => {
             }
         }
 
-        console.log(`   🏁 Complete! Result: ${diceResult}`);
+        console.log(`   📝 Sequence: ${sequenceNumber}`);
+        console.log(`   ⏳ Waiting for Pyth provider to reveal...`);
+
+        // 4. Poll for result (Pyth provider will automatically call entropyCallback)
+        let result = null;
+        let attempts = 0;
+        const maxAttempts = 30; // 30 seconds timeout
+
+        while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+            const [isFulfilled, diceResult] = await contract.read.getDiceResult([roundId]);
+
+            if (isFulfilled) {
+                result = Number(diceResult);
+                console.log(`   🎉 Result Revealed: ${result}`);
+                break;
+            }
+
+            attempts++;
+        }
+
+        if (result === null) {
+            throw new Error("Timeout waiting for Pyth provider to reveal randomness");
+        }
 
         res.json({
             success: true,
-            result: diceResult,
+            result,
             roundId: roundId.toString(),
-            txHash: subTxHash
+            sequenceNumber: sequenceNumber?.toString(),
+            txHash: reqTxHash
         });
     } catch (error) {
         console.error("❌ Roll Dice Error:", error.message);
@@ -233,5 +314,5 @@ app.post('/api/roll-dice', async (req, res) => {
 // Start server
 initializeClients();
 app.listen(PORT, () => {
-    console.log(`🚀 VRF Oracle Backend running on port ${PORT}`);
+    console.log(`🚀 Pyth Entropy VRF Oracle running on port ${PORT}`);
 });

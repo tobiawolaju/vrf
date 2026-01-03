@@ -1,25 +1,28 @@
 const hre = require("hardhat");
-const fs = require("fs");
 
 async function main() {
-    // Official Monad Mainnet Switchboard Address
-    // Source: https://switchboard.xyz/explorer/143
-    // Address: 0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67
-    const switchboardAddress = "0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67";
-    const queueId = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752";
+    console.log("Deploying DiceRoller with Pyth Entropy...");
 
-    console.log(`Deploying DiceRoller with Switchboard: ${switchboardAddress} | Queue: ${queueId}`);
+    // Pyth Entropy contract on Monad Mainnet
+    const ENTROPY_ADDRESS = "0x98046Bd286715D3B0BC227Dd7a956b83D8978603";
+
+    // Default Pyth entropy provider
+    const ENTROPY_PROVIDER = "0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344"; // Pyth's default provider
+
+    console.log(`Entropy: ${ENTROPY_ADDRESS} | Provider: ${ENTROPY_PROVIDER}`);
 
     const DiceRoller = await hre.ethers.getContractFactory("DiceRoller");
-    const diceRoller = await DiceRoller.deploy(switchboardAddress, queueId);
+    const diceRoller = await DiceRoller.deploy(ENTROPY_ADDRESS, ENTROPY_PROVIDER);
 
     await diceRoller.waitForDeployment();
 
-    console.log(`DiceRoller deployed to ${diceRoller.target}`);
-    fs.writeFileSync("address.txt", diceRoller.target);
+    const address = await diceRoller.getAddress();
+    console.log(`DiceRoller deployed to ${address}`);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
