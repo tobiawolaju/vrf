@@ -1,4 +1,4 @@
-# Pyth Entropy VRF Deployment Guide
+# Pyth Entropy VRF Deployment Guide (Trust-Minimal)
 
 ## ✅ Smart Contract Deployed
 
@@ -11,14 +11,17 @@
 
 ## Architecture Overview
 
-This implementation uses **Pyth Entropy** for truly decentralized VRF:
+This implementation uses an **Oracle-Native** model with **Pyth Entropy**. The system is design to be trust-minimal: the backend holds no private keys and only observes events.
 
-1. **Commit Phase**: User calls `requestDiceRoll()` with a random commitment
-2. **Pyth Provider**: Automatically generates and reveals randomness
-3. **Callback**: Pyth calls `entropyCallback()` with the random number
-4. **Result**: Dice result (1-3) is stored on-chain
+1. **Commit Phase**: Player's browser generates a secret and commits the hash to the `DiceRoller` contract.
+2. **Fetch Phase**: Player's browser fetches the oracle's secret from the Pyth Hermes API.
+3. **Reveal Phase**: Player's browser submits both secrets to the Pyth Entropy contract.
+4. **Callback**: Pyth verifies and triggers the `DiceRoller.entropyCallback` on-chain.
+5. **Index**: The backend indexer detects the result and updates the match state.
 
-## Oracle Backend Setup
+## Oracle Backend Setup (Read-Only Indexer)
+
+The backend is now a **read-only indexer**. It does not require a private key.
 
 ### Local Development
 
@@ -31,7 +34,6 @@ This implementation uses **Pyth Entropy** for truly decentralized VRF:
 2. **Configure environment** (`.env`):
    ```
    MONAD_RPC_URL=https://rpc-mainnet.monadinfra.com
-   ADMIN_PRIVATE_KEY=your_private_key_here
    PORT=3001
    ```
 
@@ -42,11 +44,10 @@ This implementation uses **Pyth Entropy** for truly decentralized VRF:
 
 ### Production Deployment (Render)
 
-1. **Update `render.yaml`** with new contract address
+1. **Update `render.yaml`** with the new contract address.
 2. **Set environment variables** in Render dashboard:
-   - `MONAD_RPC_URL`
-   - `ADMIN_PRIVATE_KEY`
-3. **Deploy** to Render
+   - `MONAD_RPC_URL` (e.g., via Monad Infra or Ankr)
+3. **Note**: The `ADMIN_PRIVATE_KEY` is no longer required and should be removed for security.
 
 ## Frontend Integration
 
@@ -54,113 +55,48 @@ This implementation uses **Pyth Entropy** for truly decentralized VRF:
 
 Add to Vercel environment variables:
 - **Name**: `ORACLE_BACKEND_URL`
-- **Value**: `https://vrf-oracle-backend.onrender.com` (or your Render URL)
+- **Value**: `https://vrf-oracle-backend.onrender.com` (your Render URL)
 
 ### Contract Configuration
 
-The frontend is already configured with:
-- Contract address: `0x131e56853F087F74Dbd59f7c6581cd57201a5f34`
-- Updated ABI with Pyth Entropy methods
-- Commit-reveal flow support
+The frontend orchestrates the VRF flow:
+1. **Request**: `DiceRoller.requestDiceRoll(roundId, userCommitment)`
+2. **Reveal**: `PythEntropy.revealWithCallback(provider, sequenceNumber, userSecret, oracleSecret)`
 
 ## Testing
 
-### Test VRF Locally
+### Test VRF Locally (Front-end Simulation)
 
 ```bash
 cd contracts
 node scripts/test-pyth-vrf.js
 ```
 
-This will:
-1. Get the VRF fee
-2. Generate a random commitment
-3. Request a dice roll
-4. Wait for Pyth provider to reveal
-5. Display the result
-
-### Test Oracle Backend
+### Test Oracle Indexer
 
 **Health check**:
 ```bash
 curl http://localhost:3001/health
 ```
+Expected response: `{"status":"ok","mode":"read-only-indexer","contract":"0x131e..."}`
 
-**Get fee**:
-```bash
-curl http://localhost:3001/api/get-fee
-```
+## Security Advantages
 
-**Full roll test**:
-```bash
-curl -X POST http://localhost:3001/api/roll-dice \
-  -H "Content-Type: application/json" \
-  -d '{"gameCode":"TEST","roundNumber":1}'
-```
-
-## How It Works
-
-### 1. Request Flow
-```javascript
-// Frontend calls oracle backend
-POST /api/roll-dice
-{
-  "gameCode": "ABC123",
-  "roundNumber": 1
-}
-```
-
-### 2. Oracle Backend
-```javascript
-// Generates random commitment
-const commitment = generateUserCommitment();
-
-// Calls contract with fee
-await contract.write.requestDiceRoll(
-  [roundId, commitment],
-  { value: fee }
-);
-```
-
-### 3. Pyth Entropy
-- Receives commitment on-chain
-- Provider generates randomness
-- Automatically calls `entropyCallback()`
-- Result stored in contract
-
-### 4. Result Retrieval
-```javascript
-// Backend polls for result
-const [isFulfilled, result] = await contract.read.getDiceResult([roundId]);
-```
-
-## Key Advantages
-
-✅ **Truly Decentralized**: Uses Pyth's oracle network, not server-side random  
-✅ **Cryptographically Secure**: Commit-reveal prevents manipulation  
-✅ **Monad Native**: Deployed on Monad from block one  
-✅ **Low Cost**: Optimized for Monad's high performance  
-✅ **Verifiable**: All randomness verifiable on-chain  
+✅ **Zero Trust**: The server cannot manipulate results or sign unauthorized transactions.
+✅ **Provably Fair**: Randomness is derived from two independent secrets (Player + Oracle).
+✅ **Crankless**: No need for a backend "relayer" to finalize rolls; the player (or any user) can reveal.
+✅ **Verifiable**: All logs are indexed and linkable to Monad transactions.
 
 ## Troubleshooting
 
-### "Timeout waiting for reveal"
-- Pyth provider may take 10-30 seconds to reveal
-- Check contract directly: `getDiceResult(roundId)`
-- Verify fee was paid correctly
+### "Results not appearing in UI"
+- Ensure the backend indexer is running and connected to a Monad RPC.
+- Check logs for "DiceRolled" event detection.
 
-### "Insufficient fee"
-- Call `getFee()` to get current fee
-- Fee may change based on network conditions
+### "Transaction failed on reveal"
+- Ensure the player has enough MON for gas to sign the reveal transaction.
+- Verify that the `sequenceNumber` matches the one emitted in the `DiceRequested` event.
 
-### "Already fulfilled"
-- Each roundId can only be used once
-- Generate new roundId for each roll
+---
 
-## Next Steps
-
-1. ✅ Deploy oracle backend to Render
-2. ✅ Update Vercel environment variables
-3. ✅ Test end-to-end flow
-4. 📝 Monitor Pyth provider performance
-5. 📝 Consider adding event listeners for real-time updates
+**Built with ❤️ for Monad Hackathon 2025**
