@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { createWalletClient, http, publicActions, getContract } from 'viem';
+import { createWalletClient, http, publicActions, getContract, decodeEventLog } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 dotenv.config();
@@ -147,13 +147,16 @@ app.post('/api/fulfill-roll', async (req, res) => {
         const receipt = await adminWallet.waitForTransactionReceipt({ hash: subTxHash });
 
         // Parse event to get result
-        const logs = receipt.logs;
         let diceResult = null;
 
-        for (const log of logs) {
+        for (const log of receipt.logs) {
             try {
-                const decoded = contract.interface.parseLog(log);
-                if (decoded && decoded.name === 'DiceRolled') {
+                const decoded = decodeEventLog({
+                    abi: DICEROLLER_ABI,
+                    data: log.data,
+                    topics: log.topics
+                });
+                if (decoded.eventName === 'DiceRolled') {
                     diceResult = Number(decoded.args.result);
                     break;
                 }
@@ -198,10 +201,18 @@ app.post('/api/roll-dice', async (req, res) => {
         // 4. Parse result
         let diceResult = null;
         for (const log of receipt.logs) {
-            if (log.topics[0] === contract.interface.getEvent('DiceRolled').topicHash) {
-                const decoded = contract.interface.parseLog(log);
-                diceResult = Number(decoded.args.result);
-                break;
+            try {
+                const decoded = decodeEventLog({
+                    abi: DICEROLLER_ABI,
+                    data: log.data,
+                    topics: log.topics
+                });
+                if (decoded.eventName === 'DiceRolled') {
+                    diceResult = Number(decoded.args.result);
+                    break;
+                }
+            } catch (e) {
+                // Not the event we're looking for
             }
         }
 
