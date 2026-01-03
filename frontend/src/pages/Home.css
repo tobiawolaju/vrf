@@ -242,19 +242,28 @@
 .btn-login-huge {
     font-size: 1.5rem;
     padding: 20px 40px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-family: var(--font-game);
-    box-shadow: 0 10px 0 darken(var(--primary-color), 20%);
+    background: rgb(255, 208, 0);
+    color: #1a1a1a;
+    border: 4px solid #1a1a1a;
+    border-radius: 50px;
+    font-family: var(--font-ui);
+    font-weight: 900;
+    text-transform: uppercase;
+    box-shadow: 0 10px 0 #1a1a1a;
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+}
+
+.btn-login-huge:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 0 #1a1a1a;
+    background: rgb(255, 220, 50);
 }
 
 .btn-login-huge:active {
     transform: translateY(4px);
-    box-shadow: 0 6px 0 darken(var(--primary-color), 20%);
+    box-shadow: 0 2px 0 #1a1a1a;
 }
 
 /* --- SETTINGS MODAL --- */
