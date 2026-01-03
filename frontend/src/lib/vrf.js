@@ -8,7 +8,7 @@ dotenv.config();
 
 // --- CONFIG ---
 // Updated to the new Switchboard-compliant contract
-const CONTRACT_ADDRESS = "0xf77C2B4F796E4fea9465a7eaa4606a3a64c09971";
+const CONTRACT_ADDRESS = "0x59921233Ed41da6c49936De3364BB064320999E4";
 const QUEUE_ID = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752"; // Monad Mainnet Queue
 
 const DICEROLLER_ABI = [

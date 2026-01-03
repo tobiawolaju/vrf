@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\A_Projects\\vrf\\contracts\\contracts\\DiceRoller.sol": {
-      "lastModificationDate": 1767430056599,
-      "contentHash": "0288ab63e862ceba413669e9329d7332",
+      "lastModificationDate": 1767431122035,
+      "contentHash": "4432a74fb5efa825c61f66af22ea99c8",
       "sourceName": "contracts/DiceRoller.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -29,7 +29,10 @@
           }
         }
       },
-      "imports": [],
+      "imports": [
+        "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol",
+        "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol"
+      ],
       "versionPragmas": [
         "^0.8.20"
       ],
