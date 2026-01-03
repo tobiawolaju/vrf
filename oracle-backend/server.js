@@ -3,7 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createWalletClient, http, publicActions, getContract } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { CrossbarClient } from '@switchboard-xyz/on-demand';
+import pkg from '@switchboard-xyz/on-demand';
+const { CrossbarClient } = pkg;
 
 dotenv.config();
 
