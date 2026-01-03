@@ -30,7 +30,7 @@ const Scoreboard = ({ players }) => {
 
     return (
         <div className="scoreboard-corner">
-            <h3>Top Chat</h3>
+            <h3>Live score</h3>
             <div className="score-list">
                 {players
                     .sort((a, b) => b.credits - a.credits)
