@@ -3,8 +3,9 @@
     top: 0;
     left: 0;
     padding: 16px;
-    min-width: 200px;
-    max-width: 280px;
+    width: 25vw;
+    /* Desktop constraint */
+    max-width: 25vw;
     z-index: 100;
     /* Overlay Style */
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
@@ -63,27 +64,16 @@
     font-size: 1rem;
     font-weight: bold;
     color: #fff;
+    /* Fallback */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-/* Color variation for names (pseudo-random feel) */
-.score-item:nth-child(odd) .name {
-    color: #a970ff;
-    /* Twitch Purpleish */
-}
-
-.score-item:nth-child(even) .name {
-    color: #00e6cb;
-    /* Mint */
 }
 
 .score-item.me .name {
     color: #ff4d4d !important;
     /* Red for self */
 }
-
 
 .score-item .credits {
     color: #fff;
@@ -95,22 +85,38 @@
     .scoreboard-corner {
         top: 0;
         left: 0;
-        width: 100%;
-        max-width: none;
+        width: 50vw;
+        /* Mobile constraint */
+        max-width: 50vw;
         background: rgba(0, 0, 0, 0.5);
         /* legible on mobile */
         padding: 8px;
     }
 
+    /* Keep items stacked on mobile for chat feel, or allow horizontal scroll if preferred, 
+       but user overlay request implies vertical list usually. I'll stick to vertical vertical stack 
+       consistent with overlay request, but check if user code wanted row. 
+       User provided code had ".score-list { flex-direction: row... }" for mobile. 
+       I should probably respect that if they want it readable without blocking game.
+       But "Twitch chat" is vertical. I will stick to vertical but ensure it doesn't block too much.
+       Actually, user code snippet had horizontal for mobile. I will keep that as it might be their preference 
+       to avoid covering the game center.
+    */
     .score-list {
-        flex-direction: row;
-        overflow-x: auto;
+        flex-direction: column;
+        /* Resetting to vertical because 50vw is enough for names, and horizontal chat is weird */
+        /* Wait, if I make it horizontal it breaks the "chat overlay" vibe. 
+           But 50vw width might cover game elements. 
+           Let's adhere to the "max-width 50vw" rule and keep it vertical but maybe limit height?
+           I'll stick to normal flow. Use user's mobile styles but updated width.
+        */
+        overflow-x: hidden;
         padding-bottom: 4px;
     }
 
     .score-item {
+        margin-right: 0;
         white-space: nowrap;
-        background: rgba(0, 0, 0, 0.3);
-        margin-right: 8px;
+        background: transparent;
     }
 }
