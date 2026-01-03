@@ -9,40 +9,34 @@ export default async function handler(req, res) {
 
     try {
         const { gameCode, playerName, avatar, privyId } = req.body;
-        const gameState = await db.getGame(gameCode);
+        if (!gameCode) return res.status(400).json({ error: 'Missing gameCode' });
 
+        const gameState = await db.getGame(gameCode);
         if (!gameState) return res.status(404).json({ error: 'Game not found' });
 
         if (gameState.phase !== 'waiting') {
-            return res.status(400).json({ error: 'you got locked out, match already in progress' });
+            return res.status(400).json({ error: 'Match already in progress' });
         }
 
-        let playerId;
-        let newPlayer;
+        let playerId = privyId || generatePlayerId();
 
-        // Check if player already in game (re-join)
-        const existingPlayer = privyId ? gameState.players.find(p => p.id === privyId) : null;
-
+        // Re-join logic
+        const existingPlayer = gameState.players.find(p => p.id === playerId);
         if (existingPlayer) {
-            playerId = existingPlayer.id;
             existingPlayer.connected = true;
             if (avatar) existingPlayer.avatar = avatar;
             if (playerName) existingPlayer.name = playerName;
 
             await db.setGame(gameCode, gameState);
-
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 playerId,
-                playerNumber: existingPlayer.playerNumber,
-                playerName: existingPlayer.name,
                 gameState: getPublicState(gameState, playerId)
             });
-            return;
         }
 
-        playerId = privyId || generatePlayerId();
-        newPlayer = {
+        // New player logic
+        const newPlayer = {
             id: playerId,
             playerNumber: gameState.players.length,
             name: playerName || `Player ${gameState.players.length + 1}`,
@@ -65,12 +59,10 @@ export default async function handler(req, res) {
         res.status(200).json({
             success: true,
             playerId,
-            playerNumber: newPlayer.playerNumber,
-            playerName: newPlayer.name,
             gameState: getPublicState(gameState, playerId)
         });
     } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Join API Error:', e);
+        res.status(500).json({ error: 'Internal Server Error', details: e.message });
     }
 }

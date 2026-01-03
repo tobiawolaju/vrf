@@ -72,7 +72,12 @@ const PYTH_ABI = [
 async function processReveal(sequenceNumber, roundId) {
     if (!crankWallet) return;
 
-    const userReveal = roundSecrets.get(roundId);
+    // 1. Check local memory first, then DB
+    let userReveal = roundSecrets.get(roundId);
+    if (!userReveal) {
+        userReveal = await db.getSecret(roundId);
+    }
+
     if (!userReveal) {
         console.log(`   ⏳ Waiting for user secret for round ${roundId}...`);
         return;
@@ -100,6 +105,9 @@ async function processReveal(sequenceNumber, roundId) {
         console.log(`   ✅ Crank reveal TX sent: ${hash}`);
         roundSecrets.delete(roundId); // Cleanup
         pendingSequences.delete(sequenceNumber);
+
+        // Also cleanup DB if possible (background)
+        db.setSecret(roundId, null).catch(() => { });
     } catch (e) {
         // Silent fail (will retry on next event or via interval)
         const msg = e.message;

@@ -59,6 +59,27 @@ export const db = {
         if (useRedis || useKV) return []; // Not implemented for distributed yet
         return Array.from(global.gameRooms.values());
     },
+    setSecret: async (roundId, userReveal) => {
+        const EXPIRE_SECONDS = 3600; // 1 hour
+        if (useRedis) {
+            await redisClient.set(`secret:${roundId}`, userReveal, 'EX', EXPIRE_SECONDS);
+        } else if (useKV) {
+            await kvClient.set(`secret:${roundId}`, userReveal, { ex: EXPIRE_SECONDS });
+        } else {
+            global.gameSecrets = global.gameSecrets || new Map();
+            global.gameSecrets.set(roundId, userReveal);
+        }
+    },
+    getSecret: async (roundId) => {
+        if (useRedis) {
+            return await redisClient.get(`secret:${roundId}`);
+        }
+        if (useKV) {
+            return await kvClient.get(`secret:${roundId}`);
+        }
+        global.gameSecrets = global.gameSecrets || new Map();
+        return global.gameSecrets.get(roundId);
+    },
 
     // --- LEADERBOARD LOGIC ---
     updateGameStats: async (gameState, winnerId) => {
