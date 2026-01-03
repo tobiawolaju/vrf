@@ -13,7 +13,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 // --- Blockchain Config ---
-const CONTRACT_ADDRESS = "0x59921233Ed41da6c49936De3364BB064320999E4";
+const CONTRACT_ADDRESS = "0xA4F622c0C40903115beD1c19aD7fE74FaddBa354";
 const QUEUE_ID = "0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752";
 const CROSSBAR_URL = "https://crossbar.switchboard.xyz";
 

@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // --- CONFIG ---
-const CONTRACT_ADDRESS = "0x59921233Ed41da6c49936De3364BB064320999E4";
+const CONTRACT_ADDRESS = "0xA4F622c0C40903115beD1c19aD7fE74FaddBa354";
 const ORACLE_BACKEND_URL = process.env.ORACLE_BACKEND_URL || "http://localhost:3001";
 
 const DICEROLLER_ABI = [
