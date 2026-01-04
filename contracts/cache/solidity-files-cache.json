@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "D:\\A_Projects\\vrf\\contracts\\contracts\\DiceRoller.sol": {
-      "lastModificationDate": 1767493862607,
-      "contentHash": "26c282d7b418399e868af10810f85758",
+      "lastModificationDate": 1767498965043,
+      "contentHash": "ce6a4b2c4dae6a521bf83c4b5cf38426",
       "sourceName": "contracts/DiceRoller.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -37,7 +37,8 @@
         "^0.8.24"
       ],
       "artifacts": [
-        "DiceRoller"
+        "DiceRoller",
+        "IRandomnessModule"
       ]
     },
     "D:\\A_Projects\\vrf\\contracts\\node_modules\\@switchboard-xyz\\on-demand-solidity\\interfaces\\ISwitchboard.sol": {

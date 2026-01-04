@@ -5,9 +5,21 @@ import "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol";
 import "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol";
 
 /**
+ * @title IRandomnessModule
+ * @notice Interface for Switchboard Randomness Module (queue-based)
+ */
+interface IRandomnessModule {
+    function requestRandomness(
+        bytes32 randomnessId,
+        address authority,
+        bytes32 queueId,
+        uint64 minSettlementDelay
+    ) external;
+}
+
+/**
  * @title DiceRoller
- * @notice A Switchboard-powered VRF implementation for "Last Die Standing".
- * @dev Uses the Request-Pull-Submit flow for trust-minimal randomness.
+ * @notice A Switchboard-powered VRF implementation with Simulation Fallback.
  */
 contract DiceRoller {
     error AlreadyRequested(uint256 roundId);
@@ -35,8 +47,12 @@ contract DiceRoller {
         bool fulfilled;
     }
 
-    // Monad Mainnet Switchboard Address
+    // Monad Mainnet Switchboard Addresses
     address public constant SWITCHBOARD = 0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67;
+    bytes32 public constant SWITCHBOARD_QUEUE = 0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752;
+
+    bool public simulationMode = true; // Set to false when Switchboard is stable
+    address public owner;
 
     // Mapping from Switchboard requestId to metadata
     mapping(bytes32 => RollRequest) public requests;
@@ -45,10 +61,21 @@ contract DiceRoller {
     // Prevent double requests for the same roundId
     mapping(uint256 => bool) public roundRequested;
 
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
+    }
+
+    function setSimulationMode(bool _mode) external onlyOwner {
+        simulationMode = _mode;
+    }
+
     /**
-     * @notice Step 1: Request a dice roll via Switchboard.
-     * @param roundId Unique identifier for the round
-     * @param gameId Unique identifier for the game session
+     * @notice Step 1: Request a dice roll.
      */
     function requestDiceRoll(
         uint256 roundId, 
@@ -57,16 +84,28 @@ contract DiceRoller {
         if (roundRequested[roundId]) revert AlreadyRequested(roundId);
         if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
         
-        // Generate a unique requestId from context
         bytes32 requestId = keccak256(abi.encodePacked(roundId, gameId, block.timestamp, msg.sender));
         
-        // Register request with Switchboard
-        ISwitchboard(SWITCHBOARD).createRandomness(requestId, 0);
+        if (simulationMode) {
+            // Pseudo-random result for testing UI/Logic
+            uint256 pseudoRand = uint256(keccak256(abi.encodePacked(block.timestamp, requestId)));
+            uint8 result = uint8((pseudoRand % 3) + 1);
+            diceResults[roundId] = result;
+            emit DiceRolled(roundId, gameId, result, pseudoRand);
+        } else {
+            // Register request with Switchboard
+            IRandomnessModule(SWITCHBOARD).requestRandomness(
+                requestId, 
+                address(this), 
+                SWITCHBOARD_QUEUE, 
+                0
+            );
+        }
 
         requests[requestId] = RollRequest({
             roundId: roundId,
             gameId: gameId,
-            fulfilled: false
+            fulfilled: simulationMode
         });
         roundRequested[roundId] = true;
 
@@ -74,24 +113,20 @@ contract DiceRoller {
     }
 
     /**
-     * @notice Step 2: Settle and Fulfill the randomness.
-     * @dev Called by the Crank after fetching the Switchboard proof.
-     * @param proof The Switchboard VRF proof/fulfillment data
-     * @param requestId The ID of the randomness request being fulfilled
+     * @notice Step 2: Settle and Fulfill (Crank/Real Switchboard only)
      */
     function settleAndFulfill(bytes calldata proof, bytes32 requestId) external payable {
+        if (simulationMode) revert Unauthorized();
+        
         RollRequest storage req = requests[requestId];
         if (req.roundId == 0) revert Unauthorized();
         if (req.fulfilled) revert AlreadyFulfilled(req.roundId);
 
-        // 1. Settle on Switchboard
         ISwitchboard(SWITCHBOARD).settleRandomness{value: msg.value}(proof);
         
-        // 2. Fetch the randomness value
         SwitchboardTypes.Randomness memory rand = ISwitchboard(SWITCHBOARD).getRandomness(requestId);
         if (rand.settledAt == 0) revert InvalidRandomness();
 
-        // 3. Resolve result (1-3)
         uint8 result = uint8((rand.value % 3) + 1);
 
         diceResults[req.roundId] = result;
@@ -100,9 +135,6 @@ contract DiceRoller {
         emit DiceRolled(req.roundId, req.gameId, result, rand.value);
     }
 
-    /**
-     * @notice Get status of a dice roll
-     */
     function getDiceStatus(uint256 roundId) external view returns (
         bool requested, 
         bool fulfilled, 

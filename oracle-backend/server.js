@@ -18,7 +18,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 // --- Contract Config ---
-const CONTRACT_ADDRESS = "0x0D4649fC3B09d1c73CA4282a5F546CE984B27d0a";
+const CONTRACT_ADDRESS = "0xc0c6c5d63ACed3bD7Dd85ef2e89FFE0464A7660d";
 
 const DICEROLLER_ABI = [
     {

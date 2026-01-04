@@ -10,7 +10,7 @@ import { keccak256, bytesToHex, hexToBytes } from 'viem';
  * 4. Backend calls settleAndFulfill on-chain
  */
 
-export const CONTRACT_ADDRESS = "0x0D4649fC3B09d1c73CA4282a5F546CE984B27d0a"; // New Switchboard Deployment
+export const CONTRACT_ADDRESS = "0xc0c6c5d63ACed3bD7Dd85ef2e89FFE0464A7660d"; // Simulated Switchboard Deployment
 export const SWITCHBOARD_CROSSBAR_URL = "https://crossbar.switchboard.xyz";
 
 export const DICEROLLER_ABI = [
@@ -44,6 +44,23 @@ export const DICEROLLER_ABI = [
             { "name": "result", "type": "uint8" }
         ],
         "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "diceResults",
+        "inputs": [{ "name": "roundId", "type": "uint256" }],
+        "outputs": [{ "name": "", "type": "uint8" }],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "DiceRolled",
+        "inputs": [
+            { "name": "roundId", "type": "uint256", "indexed": true },
+            { "name": "gameId", "type": "string", "indexed": false },
+            { "name": "result", "type": "uint8", "indexed": false },
+            { "name": "randomness", "type": "uint256", "indexed": false }
+        ]
     }
 ];
 
