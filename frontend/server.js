@@ -113,19 +113,22 @@ function setupContractListener() {
                     if (event.eventName === 'DiceRolled') {
                         const { roundId, result, gameId } = event.args;
                         const txHash = log.transactionHash;
-                        console.log(`🏁 [Log] DiceRolled: Round ${roundId} | Result ${result} | Game ${gameId}`);
+                        console.log(`🏁 [Viem] DiceRolled Detected: Round ${roundId} | Result ${result} | Game ${gameId}`);
 
-                        // 🎯 Direct lookup by gameId (match code)
                         const game = await db.getGame(gameId);
-                        if (game && game.phase === 'rolling') {
-                            console.log(`   ✅ Resolving Game ${gameId} with result ${result}`);
-                            resolveRound(game, result, txHash);
-                            await db.setGame(gameId, game);
-                        } else {
-                            console.log(`   ⚠️  DiceRolled received for game ${gameId} but it's not in 'rolling' phase or not found.`);
+                        if (!game) {
+                            console.warn(`   ⚠️  Received DiceRolled for unknown game: ${gameId}`);
+                            continue;
                         }
+
+                        console.log(`   ✅ Resolving Game ${gameId} (Current Phase: ${game.phase})`);
+                        resolveRound(game, result, txHash);
+                        await db.setGame(gameId, game);
+                        console.log(`   ✨ Game ${gameId} advanced to 'resolve' phase.`);
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) {
+                    console.error("❌ Indexer Event Processing Error:", e);
+                }
             }
         }
     });
