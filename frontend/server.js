@@ -17,6 +17,7 @@ app.use(express.json());
 
 // --- BLOCKCHAIN CONFIG (Crank Indexer) ---
 import { DICEROLLER_ABI, CONTRACT_ADDRESS, SWITCHBOARD_CROSSBAR_URL } from './src/lib/vrf.js';
+// Note: CONTRACT_ADDRESS is now 0xc0c6c5d63ACed3bD7Dd85ef2e89FFE0464A7660d (Simulated)
 
 const monadMainnet = {
     id: 143,
@@ -110,18 +111,18 @@ function setupContractListener() {
                     }
 
                     if (event.eventName === 'DiceRolled') {
-                        const { roundId, result } = event.args;
+                        const { roundId, result, gameId } = event.args;
                         const txHash = log.transactionHash;
-                        console.log(`🏁 [Log] DiceRolled: Round ${roundId} | Result ${result}`);
+                        console.log(`🏁 [Log] DiceRolled: Round ${roundId} | Result ${result} | Game ${gameId}`);
 
-                        const games = await db.getAllGames() || [];
-                        for (const game of games) {
-                            if (game.currentRoundId === roundId.toString() && game.phase === 'rolling') {
-                                console.log(`   ✅ Resolving Game ${game.gameCode} with result ${result}`);
-                                resolveRound(game, result, txHash);
-                                await db.setGame(game.gameCode, game);
-                                break;
-                            }
+                        // 🎯 Direct lookup by gameId (match code)
+                        const game = await db.getGame(gameId);
+                        if (game && game.phase === 'rolling') {
+                            console.log(`   ✅ Resolving Game ${gameId} with result ${result}`);
+                            resolveRound(game, result, txHash);
+                            await db.setGame(gameId, game);
+                        } else {
+                            console.log(`   ⚠️  DiceRolled received for game ${gameId} but it's not in 'rolling' phase or not found.`);
                         }
                     }
                 } catch (e) { /* ignore */ }
