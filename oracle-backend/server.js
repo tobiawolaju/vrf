@@ -18,7 +18,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 // --- Contract Config ---
-const CONTRACT_ADDRESS = "0x131e56853F087F74Dbd59f7c6581cd57201a5f34";
+const CONTRACT_ADDRESS = "0x0D4649fC3B09d1c73CA4282a5F546CE984B27d0a";
 
 const DICEROLLER_ABI = [
     {
@@ -26,9 +26,9 @@ const DICEROLLER_ABI = [
         "name": "DiceRequested",
         "inputs": [
             { "name": "roundId", "type": "uint256", "indexed": true },
-            { "name": "sequenceNumber", "type": "uint64", "indexed": false },
-            { "name": "requester", "type": "address", "indexed": false },
-            { "name": "userCommitment", "type": "bytes32", "indexed": false }
+            { "name": "gameId", "type": "string", "indexed": false },
+            { "name": "requestId", "type": "bytes32", "indexed": false },
+            { "name": "requester", "type": "address", "indexed": false }
         ]
     },
     {
@@ -36,6 +36,7 @@ const DICEROLLER_ABI = [
         "name": "DiceRolled",
         "inputs": [
             { "name": "roundId", "type": "uint256", "indexed": true },
+            { "name": "gameId", "type": "string", "indexed": false },
             { "name": "result", "type": "uint8", "indexed": false },
             { "name": "randomness", "type": "uint256", "indexed": false }
         ]
@@ -80,8 +81,8 @@ function watchEvents() {
                 });
 
                 if (event.eventName === 'DiceRequested') {
-                    const { roundId, sequenceNumber, requester } = event.args;
-                    console.log(`🎲 [Log] DiceRequested: Round ${roundId} | Seq ${sequenceNumber} | By ${requester}`);
+                    const { roundId, requestId, requester } = event.args;
+                    console.log(`🎲 [Log] DiceRequested: Round ${roundId} | ID ${requestId} | By ${requester}`);
                     // updateGameStatus(roundId, 'PENDING');
                 }
 

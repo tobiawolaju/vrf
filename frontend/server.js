@@ -16,9 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- BLOCKCHAIN CONFIG (Crank Indexer) ---
-const CONTRACT_ADDRESS = "0x18250AffA8C219D703f2D756027186DB2574B0db";
-const PYTH_ENTROPY_ADDRESS = "0x98046Bd286715D3B0BC227Dd7a956b83D8978603";
-const PYTH_PROVIDER = "0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344";
+import { DICEROLLER_ABI, CONTRACT_ADDRESS, SWITCHBOARD_CROSSBAR_URL } from './src/lib/vrf.js';
 
 const monadMainnet = {
     id: 143,
@@ -48,70 +46,46 @@ if (process.env.ADMIN_PRIVATE_KEY) {
 }
 
 // Memory stores for orchestration
-const roundSecrets = new Map(); // roundId -> userReveal
-const pendingSequences = new Map(); // sequenceNumber -> roundId
-
-const PYTH_ABI = [
-    {
-        "type": "function",
-        "name": "revealWithCallback",
-        "inputs": [
-            { "name": "provider", "type": "address" },
-            { "name": "sequenceNumber", "type": "uint64" },
-            { "name": "userReveal", "type": "bytes32" },
-            { "name": "providerReveal", "type": "bytes32" }
-        ],
-        "outputs": [],
-        "stateMutability": "payable"
-    }
-];
+const pendingRequests = new Map(); // requestId -> roundId
 
 /**
- * Crank Worker: Polls Pyth Hermes and reveals
+ * Switchboard Crank: Polls Switchboard Crossbar and settles
  */
-async function processReveal(sequenceNumber, roundId) {
+async function processSwitchboardCrank(requestId, roundId) {
     if (!crankWallet) return;
 
-    // 1. Check local memory first, then DB
-    let userReveal = roundSecrets.get(roundId);
-    if (!userReveal) {
-        userReveal = await db.getSecret(roundId);
-    }
-
-    if (!userReveal) {
-        console.log(`   ⏳ Waiting for user secret for round ${roundId}...`);
-        return;
-    }
-
     try {
-        console.log(`🔓 [Crank] Fulfilling Round ${roundId} (Seq: ${sequenceNumber})...`);
+        console.log(`🔓 [Crank] Fulfilling Switchboard Round ${roundId} (Req: ${requestId})...`);
 
-        // 1. Fetch from Pyth Hermes
-        const res = await fetch(`https://hermes.pyth.network/v2/entropy/ops/reveal?sequence_number=${sequenceNumber}`);
-        if (!res.ok) throw new Error("Pyth reveal not ready yet");
+        // 1. Fetch proof from Switchboard Crossbar
+        const url = `${SWITCHBOARD_CROSSBAR_URL}/updates/eth/randomness?ids=${requestId}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Switchboard proof not ready yet");
 
         const data = await res.json();
-        const providerReveal = data.provider_reveal;
+        // Crossbar returns an array of updates/proofs
+        if (!data || !data.updates || data.updates.length === 0) {
+            throw new Error("No updates found in Crossbar response");
+        }
 
-        // 2. Transact
+        const proof = data.updates[0];
+
+        // 2. Transact settleAndFulfill
         const hash = await crankWallet.writeContract({
-            address: PYTH_ENTROPY_ADDRESS,
-            abi: PYTH_ABI,
-            functionName: 'revealWithCallback',
-            args: [PYTH_PROVIDER, BigInt(sequenceNumber), userReveal, providerReveal],
+            address: CONTRACT_ADDRESS,
+            abi: DICEROLLER_ABI,
+            functionName: 'settleAndFulfill',
+            args: [proof, requestId],
             account: crankWallet.account
         });
 
-        console.log(`   ✅ Crank reveal TX sent: ${hash}`);
-        roundSecrets.delete(roundId); // Cleanup
-        pendingSequences.delete(sequenceNumber);
-
-        // Also cleanup DB if possible (background)
-        db.setSecret(roundId, null).catch(() => { });
+        console.log(`   ✅ Crank fulfill TX sent: ${hash}`);
+        pendingRequests.delete(requestId);
     } catch (e) {
-        // Silent fail (will retry on next event or via interval)
         const msg = e.message;
-        if (!msg.includes("not ready")) console.error(`   ❌ Crank Error:`, msg);
+        if (!msg.includes("not ready")) {
+            console.error(`   ❌ Switchboard Crank Error:`, msg);
+        }
     }
 }
 
@@ -127,12 +101,12 @@ function setupContractListener() {
                     const event = decodeEventLog({ abi: DICEROLLER_ABI, data: log.data, topics: log.topics });
 
                     if (event.eventName === 'DiceRequested') {
-                        const { roundId, sequenceNumber } = event.args;
-                        console.log(`🎲 [Log] DiceRequested: Round ${roundId} | Seq ${sequenceNumber}`);
-                        pendingSequences.set(Number(sequenceNumber), roundId.toString());
+                        const { roundId, requestId } = event.args;
+                        console.log(`🎲 [Log] DiceRequested: Round ${roundId} | ID: ${requestId}`);
+                        pendingRequests.set(requestId, roundId.toString());
 
-                        // Try to process immediately if secret already arrived
-                        processReveal(Number(sequenceNumber), roundId.toString());
+                        // Try to process immediately
+                        processSwitchboardCrank(requestId, roundId.toString());
                     }
 
                     if (event.eventName === 'DiceRolled') {
@@ -197,8 +171,8 @@ function setupContractListener() {
     // Periodic Crank Loops
     setInterval(processGameCrank, 2000); // Check games every 2s
     setInterval(() => {
-        for (const [seq, roundId] of pendingSequences.entries()) {
-            processReveal(seq, roundId);
+        for (const [reqId, roundId] of pendingRequests.entries()) {
+            processSwitchboardCrank(reqId, roundId);
         }
     }, 5000); // Check reveals every 5s
 

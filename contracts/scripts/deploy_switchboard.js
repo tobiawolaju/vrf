@@ -1,23 +1,20 @@
 const hre = require("hardhat");
 
 async function main() {
-    console.log("Deploying DiceRoller...");
+    console.log("Deploying DiceRoller with Switchboard On-Demand...");
 
     const DiceRoller = await hre.ethers.getContractFactory("DiceRoller");
-    const contract = await DiceRoller.deploy();
+    const diceRoller = await DiceRoller.deploy();
 
-    await contract.waitForDeployment();
+    await diceRoller.waitForDeployment();
 
-    const address = await contract.getAddress();
-
-    console.log(`🎲 DiceRoller deployed to: ${address}`);
-    console.log(`   Owner: ${await contract.owner()}`);
-
-    // Verify?
-    // await hre.run("verify:verify", { ... })
+    const address = await diceRoller.getAddress();
+    console.log(`DiceRoller (Switchboard) deployed to ${address}`);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });

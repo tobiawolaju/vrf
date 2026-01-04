@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { generateHardenedCommitment, requestHardenedRoll, shareRevealSecret, DICEROLLER_ABI } from './lib/vrf';
+import { requestHardenedRoll, DICEROLLER_ABI } from './lib/vrf';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
@@ -68,7 +68,7 @@ function App() {
             try {
                 // 1. Check if already requested (in case of overlap)
                 const status = await publicClient.readContract({
-                    address: "0x131e56853F087F74Dbd59f7c6581cd57201a5f34",
+                    address: CONTRACT_ADDRESS,
                     abi: DICEROLLER_ABI,
                     functionName: 'getDiceStatus',
                     args: [BigInt(roundId)]
@@ -77,16 +77,10 @@ function App() {
                 if (status.requested) {
                     console.log("   ✅ Already requested by someone else.");
                 } else {
-                    // 2. Generate Hardened Commitment
-                    const { userReveal, userCommitment } = await generateHardenedCommitment(roundId, gameId, playerAddress);
-                    userRandomRef.current = userReveal; // userReveal is H(secret, context)
-
-                    // 3. Request Roll
-                    const res = await requestHardenedRoll(roundId, gameId, userCommitment, walletClient, publicClient);
+                    // 2. Request Roll (Switchboard)
+                    const res = await requestHardenedRoll(roundId, gameId, walletClient, publicClient);
                     if (res.success) {
-                        // 4. Share Secret with Backend Crank (Completion Guarantee)
-                        await shareRevealSecret(roundId, userReveal);
-                        console.log("   ✅ Secret shared with Backend Crank.");
+                        console.log("   ✅ Switchboard Request submitted. Backend crank will fulfill.");
                     }
                 }
             } catch (err) {

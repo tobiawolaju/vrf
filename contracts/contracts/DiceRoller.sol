@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
-import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import "@switchboard-xyz/on-demand-solidity/interfaces/ISwitchboard.sol";
+import "@switchboard-xyz/on-demand-solidity/libraries/SwitchboardTypes.sol";
 
 /**
  * @title DiceRoller
- * @notice A hardened, trust-minimal VRF implementation for "Last Die Standing".
- * @dev Implements commitment binding to prevent replay and MEV attacks.
- *      H(userReveal) == userCommitment
- *      userReveal = keccak256(abi.encode(userSecret, roundId, gameId, msg.sender))
+ * @notice A Switchboard-powered VRF implementation for "Last Die Standing".
+ * @dev Uses the Request-Pull-Submit flow for trust-minimal randomness.
  */
-contract DiceRoller is IEntropyConsumer {
+contract DiceRoller {
     error AlreadyRequested(uint256 roundId);
     error AlreadyFulfilled(uint256 roundId);
     error InvalidRandomness();
-    error InsufficientFee(uint128 required, uint256 provided);
     error Unauthorized();
 
     event DiceRequested(
         uint256 indexed roundId, 
         string gameId, 
-        uint64 sequenceNumber, 
+        bytes32 requestId, 
         address requester
     );
     
@@ -38,91 +35,74 @@ contract DiceRoller is IEntropyConsumer {
         bool fulfilled;
     }
 
-    IEntropy public immutable entropy;
-    address public immutable entropyProvider;
-    
-    // Mapping from sequenceNumber to Request metadata
-    mapping(uint64 => RollRequest) public requests;
+    // Monad Mainnet Switchboard Address
+    address public constant SWITCHBOARD = 0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67;
+
+    // Mapping from Switchboard requestId to metadata
+    mapping(bytes32 => RollRequest) public requests;
     // Mapping from roundId to result (1-3)
     mapping(uint256 => uint8) public diceResults;
     // Prevent double requests for the same roundId
     mapping(uint256 => bool) public roundRequested;
 
-    constructor(address _entropy, address _entropyProvider) {
-        entropy = IEntropy(_entropy);
-        entropyProvider = _entropyProvider;
-    }
-
     /**
-     * @notice Step 1: Request a dice roll with a bound commitment.
-     * @param roundId Unique identifier for the round (e.g. timestamp or sequence)
+     * @notice Step 1: Request a dice roll via Switchboard.
+     * @param roundId Unique identifier for the round
      * @param gameId Unique identifier for the game session
-     * @param userCommitment The hash of the bound secret: H(userReveal)
      */
     function requestDiceRoll(
         uint256 roundId, 
-        string calldata gameId, 
-        bytes32 userCommitment
-    ) external payable {
+        string calldata gameId
+    ) external {
         if (roundRequested[roundId]) revert AlreadyRequested(roundId);
         if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
         
-        uint128 fee = getFee();
-        if (msg.value < fee) revert InsufficientFee(fee, msg.value);
+        // Generate a unique requestId from context
+        bytes32 requestId = keccak256(abi.encodePacked(roundId, gameId, block.timestamp, msg.sender));
+        
+        // Register request with Switchboard
+        ISwitchboard(SWITCHBOARD).createRandomness(requestId, 0);
 
-        uint64 sequenceNumber = entropy.requestWithCallback{value: fee}(
-            entropyProvider,
-            userCommitment
-        );
-
-        requests[sequenceNumber] = RollRequest({
+        requests[requestId] = RollRequest({
             roundId: roundId,
             gameId: gameId,
             fulfilled: false
         });
         roundRequested[roundId] = true;
 
-        emit DiceRequested(roundId, gameId, sequenceNumber, msg.sender);
-
-        // Refund excess fee
-        if (msg.value > fee) {
-            payable(msg.sender).transfer(msg.value - fee);
-        }
+        emit DiceRequested(roundId, gameId, requestId, msg.sender);
     }
 
     /**
-     * @notice Step 2: Fulfill the randomness. 
-     * @dev Called by Pyth Entropy contract after revealWithCallback.
-     *      Permissionless: Anyone can reveal, but outcome is deterministic.
+     * @notice Step 2: Settle and Fulfill the randomness.
+     * @dev Called by the Crank after fetching the Switchboard proof.
+     * @param proof The Switchboard VRF proof/fulfillment data
+     * @param requestId The ID of the randomness request being fulfilled
      */
-    function entropyCallback(
-        uint64 sequenceNumber,
-        address, // provider (unused)
-        bytes32 randomNumber
-    ) internal override {
-        RollRequest storage req = requests[sequenceNumber];
-        
-        if (req.roundId == 0) return; // Not a valid request
+    function settleAndFulfill(bytes calldata proof, bytes32 requestId) external payable {
+        RollRequest storage req = requests[requestId];
+        if (req.roundId == 0) revert Unauthorized();
         if (req.fulfilled) revert AlreadyFulfilled(req.roundId);
-        if (randomNumber == bytes32(0)) revert InvalidRandomness();
 
-        // Calculate result 1-3
-        uint8 result = uint8((uint256(randomNumber) % 3) + 1);
+        // 1. Settle on Switchboard
+        ISwitchboard(SWITCHBOARD).settleRandomness{value: msg.value}(proof);
+        
+        // 2. Fetch the randomness value
+        SwitchboardTypes.Randomness memory rand = ISwitchboard(SWITCHBOARD).getRandomness(requestId);
+        if (rand.settledAt == 0) revert InvalidRandomness();
+
+        // 3. Resolve result (1-3)
+        uint8 result = uint8((rand.value % 3) + 1);
 
         diceResults[req.roundId] = result;
         req.fulfilled = true;
         
-        emit DiceRolled(req.roundId, req.gameId, result, uint256(randomNumber));
+        emit DiceRolled(req.roundId, req.gameId, result, rand.value);
     }
 
-    function getEntropy() internal view override returns (address) {
-        return address(entropy);
-    }
-
-    function getFee() public view returns (uint128) {
-        return entropy.getFee(entropyProvider);
-    }
-
+    /**
+     * @notice Get status of a dice roll
+     */
     function getDiceStatus(uint256 roundId) external view returns (
         bool requested, 
         bool fulfilled, 
@@ -133,3 +113,4 @@ contract DiceRoller is IEntropyConsumer {
         fulfilled = result != 0;
     }
 }
+
