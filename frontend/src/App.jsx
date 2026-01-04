@@ -62,7 +62,7 @@ function App() {
                 return;
             }
 
-            console.log(`👑 [VRF] Leading Orchestration for Round ${roundId}`);
+            console.log(`👑 [VRF] I am the Host (${playerId}). Leading Orchestration for Round ${roundId}`);
             vrfInProgress.current = roundId;
 
             try {
@@ -90,7 +90,7 @@ function App() {
         };
 
         handleVRF();
-    }, [gameState?.phase, gameState?.currentRoundId, walletClient, publicClient, authenticated]);
+    }, [gameState?.phase, gameState?.currentRoundId, gameState?.hostId, playerId, walletClient, publicClient, authenticated]);
 
     // Poll game state
     useEffect(() => {
