@@ -19,7 +19,7 @@ interface IRandomnessModule {
 
 /**
  * @title DiceRoller
- * @notice A Switchboard-powered VRF implementation with Simulation Fallback.
+ * @notice A pure Switchboard-powered VRF implementation for "Last Die Standing".
  */
 contract DiceRoller {
     error AlreadyRequested(uint256 roundId);
@@ -51,7 +51,6 @@ contract DiceRoller {
     address public constant SWITCHBOARD = 0xB7F03eee7B9F56347e32cC71DaD65B303D5a0E67;
     bytes32 public constant SWITCHBOARD_QUEUE = 0x86807068432f186a147cf0b13a30067d386204ea9d6c8b04743ac2ef010b0752;
 
-    bool public simulationMode = true; // Set to false when Switchboard is stable
     address public owner;
 
     // Mapping from Switchboard requestId to metadata
@@ -70,12 +69,8 @@ contract DiceRoller {
         _;
     }
 
-    function setSimulationMode(bool _mode) external onlyOwner {
-        simulationMode = _mode;
-    }
-
     /**
-     * @notice Step 1: Request a dice roll.
+     * @notice Step 1: Request a dice roll via Switchboard.
      */
     function requestDiceRoll(
         uint256 roundId, 
@@ -84,28 +79,22 @@ contract DiceRoller {
         if (roundRequested[roundId]) revert AlreadyRequested(roundId);
         if (diceResults[roundId] != 0) revert AlreadyFulfilled(roundId);
         
+        // Generate a unique requestId from context as per docs
         bytes32 requestId = keccak256(abi.encodePacked(roundId, gameId, block.timestamp, msg.sender));
         
-        if (simulationMode) {
-            // Pseudo-random result for testing UI/Logic
-            uint256 pseudoRand = uint256(keccak256(abi.encodePacked(block.timestamp, requestId)));
-            uint8 result = uint8((pseudoRand % 3) + 1);
-            diceResults[roundId] = result;
-            emit DiceRolled(roundId, gameId, result, pseudoRand);
-        } else {
-            // Register request with Switchboard
-            IRandomnessModule(SWITCHBOARD).requestRandomness(
-                requestId, 
-                address(this), 
-                SWITCHBOARD_QUEUE, 
-                0
-            );
-        }
+        // Register request with Switchboard using the Monad Mainnet Queue
+        // minSettlementDelay set to 1 second to satisfy oracle propagation
+        IRandomnessModule(SWITCHBOARD).requestRandomness(
+            requestId, 
+            address(this), 
+            SWITCHBOARD_QUEUE, 
+            1
+        );
 
         requests[requestId] = RollRequest({
             roundId: roundId,
             gameId: gameId,
-            fulfilled: simulationMode
+            fulfilled: false
         });
         roundRequested[roundId] = true;
 
@@ -113,20 +102,21 @@ contract DiceRoller {
     }
 
     /**
-     * @notice Step 2: Settle and Fulfill (Crank/Real Switchboard only)
+     * @notice Step 2: Settle and Fulfill (Called once Switchboard proof is available)
      */
     function settleAndFulfill(bytes calldata proof, bytes32 requestId) external payable {
-        if (simulationMode) revert Unauthorized();
-        
         RollRequest storage req = requests[requestId];
         if (req.roundId == 0) revert Unauthorized();
         if (req.fulfilled) revert AlreadyFulfilled(req.roundId);
 
+        // 1. Settle on Switchboard (Crossbar proof)
         ISwitchboard(SWITCHBOARD).settleRandomness{value: msg.value}(proof);
         
+        // 2. Fetch the randomness result metadata
         SwitchboardTypes.Randomness memory rand = ISwitchboard(SWITCHBOARD).getRandomness(requestId);
-        if (rand.settledAt == 0) revert InvalidRandomness();
+        require(rand.settledAt != 0, "Randomness failed to Settle");
 
+        // 3. Update game state with verified result (1-3)
         uint8 result = uint8((rand.value % 3) + 1);
 
         diceResults[req.roundId] = result;

@@ -10,6 +10,9 @@ async function main() {
 
     const address = await diceRoller.getAddress();
     console.log(`DiceRoller (Switchboard) deployed to ${address}`);
+
+    const fs = require('fs');
+    fs.writeFileSync('deployed_address.txt', address);
 }
 
 main()
