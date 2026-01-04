@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { requestHardenedRoll, DICEROLLER_ABI } from './lib/vrf';
+import { requestHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
