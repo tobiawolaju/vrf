@@ -183,6 +183,32 @@ setInterval(() => {
 // --- API ROUTES ---
 
 /**
+ * Direct Resolution: Host pushes the dice result from the blockchain logs
+ * for instant state transition.
+ */
+app.post('/api/resolve', async (req, res) => {
+    try {
+        const { gameCode, result, txHash } = req.body;
+        if (!gameCode || result === undefined) return res.status(400).json({ error: 'Missing data' });
+
+        console.log(`📡 [API] Direct Resolution Request: Game ${gameCode} | Result ${result}`);
+
+        const game = await db.getGame(gameCode);
+        if (!game) return res.status(404).json({ error: 'Game not found' });
+
+        if (game.phase === 'rolling') {
+            resolveRound(game, result, txHash);
+            await db.setGame(gameCode, game);
+            console.log(`   ✨ Game ${gameCode} resolved via API push.`);
+        }
+        res.json({ success: true });
+    } catch (e) {
+        console.error("❌ API Resolve Error:", e);
+        res.status(500).json({ error: 'Internal Error' });
+    }
+});
+
+/**
  * Secret Submission: Players POST their bound secret here after committing.
  */
 app.post('/api/submit-secret', async (req, res) => {

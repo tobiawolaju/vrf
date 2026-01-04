@@ -79,8 +79,32 @@ function App() {
                 } else {
                     // 2. Request Roll (Switchboard)
                     const res = await requestHardenedRoll(roundId, gameId, walletClient, publicClient);
-                    if (res.success) {
-                        console.log("   ✅ Switchboard Request submitted. Backend crank will fulfill.");
+                    if (res.success && res.receipt) {
+                        console.log("   ✅ Transaction Confirmed. Parsing logs...");
+
+                        // 3. Client-Side Resolution (Fast path)
+                        const logs = res.receipt.logs;
+                        for (const log of logs) {
+                            try {
+                                const event = decodeEventLog({ abi: DICEROLLER_ABI, data: log.data, topics: log.topics });
+                                if (event.eventName === 'DiceRolled') {
+                                    const { result } = event.args;
+                                    console.log(`   🎯 Dice Result: ${result}. Notifying Backend...`);
+
+                                    await fetch(`${API_BASE}/resolve`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            gameCode: gameId,
+                                            roundId: roundId,
+                                            result: Number(result),
+                                            txHash: res.hash
+                                        })
+                                    });
+                                    console.log("   ✨ Backend notified of resolution.");
+                                }
+                            } catch (e) { /* ignore other events */ }
+                        }
                     }
                 }
             } catch (err) {

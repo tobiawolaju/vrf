@@ -81,9 +81,9 @@ export async function requestHardenedRoll(roundId, gameId, walletClient, publicC
             account
         });
 
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
         console.log(`   ✅ Request TX: ${hash}`);
-        await publicClient.waitForTransactionReceipt({ hash });
-        return { success: true, hash };
+        return { success: true, hash, receipt };
     } catch (e) {
         console.error("❌ requestHardenedRoll Error:", e.message);
         return { success: false, error: e.message };
