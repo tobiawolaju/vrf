@@ -20,6 +20,11 @@ export default async function handler(req, res) {
 
         let playerId = privyId || generatePlayerId();
 
+        // 🛡️ Set host if not yet set
+        if (!gameState.hostId) {
+            gameState.hostId = playerId;
+        }
+
         // Re-join logic
         const existingPlayer = gameState.players.find(p => p.id === playerId);
         if (existingPlayer) {

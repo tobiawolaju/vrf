@@ -75,6 +75,21 @@
     /* Red for self */
 }
 
+/* Host Tag */
+.host-tag {
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-shadow: none;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 10px rgba(175, 77, 255, 0.4);
+}
+
 .score-item .credits {
     color: #fff;
     font-size: 1rem;

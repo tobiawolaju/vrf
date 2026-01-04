@@ -2,7 +2,7 @@ import React from 'react';
 import Avatar from './Avatar';
 import './Scoreboard.css';
 
-const Scoreboard = ({ players }) => {
+const Scoreboard = ({ players, hostId }) => {
     // Generate stable random color from name
     const getUserColor = (name) => {
         const colors = [
@@ -34,19 +34,23 @@ const Scoreboard = ({ players }) => {
             <div className="score-list">
                 {players
                     .sort((a, b) => b.credits - a.credits)
-                    .map((player, idx) => (
-                        <div key={player.id} className={`score-item ${player.isMe ? 'me' : ''}`}>
-                            <span className="rank">#{idx + 1}</span>
-                            <Avatar src={player.avatar} name={player.name} size="small" />
-                            <span
-                                className="name"
-                                style={{ color: player.isMe ? undefined : getUserColor(player.name) }}
-                            >
-                                {player.name}
-                            </span>
-                            <strong className="credits"> {player.credits}</strong>
-                        </div>
-                    ))}
+                    .map((player, idx) => {
+                        const isHost = player.id === hostId;
+                        return (
+                            <div key={player.id} className={`score-item ${player.isMe ? 'me' : ''}`}>
+                                <span className="rank">#{idx + 1}</span>
+                                <Avatar src={player.avatar} name={player.name} size="small" />
+                                <span
+                                    className="name"
+                                    style={{ color: player.isMe ? undefined : getUserColor(player.name) }}
+                                >
+                                    {player.name}
+                                    {isHost && <span className="host-tag" title="Match Host">HOST</span>}
+                                </span>
+                                <strong className="credits"> {player.credits}</strong>
+                            </div>
+                        );
+                    })}
             </div>
         </div>
     );

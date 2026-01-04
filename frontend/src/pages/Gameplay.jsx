@@ -69,7 +69,7 @@ const Gameplay = ({
 
 
 
-            <Scoreboard players={gameState.players} />
+            <Scoreboard players={gameState.players} hostId={gameState.hostId} />
 
             <RoundStatus
                 round={gameState.round}

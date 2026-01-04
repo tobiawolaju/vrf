@@ -52,12 +52,12 @@ function App() {
 
             if (!playerAddress) return;
 
-            // Deterministic Leader Election: Connected player with lowest index requests
-            const activePlayers = gameState.players.filter(p => p.connected).sort((a, b) => a.playerNumber - b.playerNumber);
-            const isLeader = activePlayers[0]?.id === playerId;
+            // 👑 Leader Election: The Host (creator) triggers the VRF
+            const isLeader = gameState.hostId === playerId;
+            const hostPlayer = gameState.players.find(p => p.id === gameState.hostId);
 
             if (!isLeader) {
-                console.log(`👤 [VRF] Following Leader ${activePlayers[0]?.name} for Round ${roundId}`);
+                console.log(`👤 [VRF] Following Host ${hostPlayer?.name || 'Leader'} for Round ${roundId}`);
                 vrfInProgress.current = roundId;
                 return;
             }

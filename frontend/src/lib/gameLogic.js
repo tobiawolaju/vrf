@@ -14,6 +14,7 @@ export function initializeGame(startDelayMinutes = 1) {
 
     return {
         gameCode,
+        hostId: null, // Set on first join
         players: [],
         round: 0, // round being resolved
         phase: 'waiting',
@@ -140,6 +141,7 @@ export function getPublicState(gameState, currentPlayerId) {
 
     return {
         gameCode: gameState.gameCode,
+        hostId: gameState.hostId,
         players: gameState.players.map(p => ({
             id: p.id,
             name: p.name,
