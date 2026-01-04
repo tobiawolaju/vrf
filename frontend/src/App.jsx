@@ -75,7 +75,20 @@ function App() {
                 });
 
                 if (status.requested) {
-                    console.log("   ✅ Already requested by someone else.");
+                    console.log("   ✅ Already requested on-chain. Checking for results...");
+                    if (status.fulfilled) {
+                        const result = status.result;
+                        console.log(`   🎯 Found existing result: ${result}. Re-notifying backend...`);
+                        await fetch(`${API_BASE}/resolve`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                gameCode: gameId,
+                                roundId: roundId,
+                                result: Number(result)
+                            })
+                        });
+                    }
                 } else {
                     // 2. Request Roll (Switchboard)
                     const res = await requestHardenedRoll(roundId, gameId, walletClient, publicClient);
