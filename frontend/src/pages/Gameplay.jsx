@@ -106,7 +106,7 @@ const Gameplay = ({
                 handleSkip={handleSkip}
             />
 
-            {gameState.phase === 'ended' && <EndGameOverlay winner={gameState.winner} />}
+            {gameState.phase === 'ended' && <EndGameOverlay winner={gameState.winner} gameState={gameState} />}
         </div>
     );
 };

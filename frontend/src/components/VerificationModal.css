@@ -1,0 +1,115 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    border: 2px solid #eb5e28; /* Retro Orange */
+    box-shadow: 0 0 20px rgba(235, 94, 40, 0.3);
+    position: relative;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #eb5e28;
+    font-size: 1.5rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.modal-header h2 {
+    margin-top: 0;
+    color: #eb5e28;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.game-id {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.game-id span {
+    color: #fff;
+    font-weight: bold;
+}
+
+.rounds-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid #333;
+}
+
+.round-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+}
+
+.round-info {
+    display: flex;
+    gap: 15px;
+}
+
+.round-num {
+    color: #888;
+}
+
+.round-result {
+    color: #eb5e28;
+    font-weight: bold;
+}
+
+.verify-link {
+    color: #4cc9f0;
+    text-decoration: none;
+    font-size: 0.8rem;
+    border: 1px solid #4cc9f0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.verify-link:hover {
+    background: #4cc9f0;
+    color: #000;
+}
+
+.pending {
+    color: #555;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
