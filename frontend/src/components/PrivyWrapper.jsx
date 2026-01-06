@@ -25,7 +25,7 @@ export default function PrivyWrapper({ children }) {
             appId={PRIVY_APP_ID}
             config={{
                 supportedChains: [monadMainnet, monadTestnet, mainnet],
-                defaultChain: monadMainnet,
+                defaultChain: monadTestnet,
                 loginMethods: ['twitter', 'wallet'],
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',

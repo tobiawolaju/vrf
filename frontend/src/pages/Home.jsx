@@ -39,9 +39,11 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
 
     const handleIncrement = async () => {
         try {
-            const wallet = wallets.find((w) => w.walletClientType === 'privy');
+            // Fallback: Use Privy wallet if found, otherwise use ANY connected wallet (e.g. MetaMask)
+            const wallet = wallets.find((w) => w.walletClientType === 'privy') || wallets[0];
+
             if (!wallet) {
-                alert("No Privy wallet found. Please ensure you are logged in with an embedded wallet.");
+                alert("No connected wallet found. Please login or connect a wallet.");
                 return;
             }
 
