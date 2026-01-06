@@ -18,9 +18,12 @@ const VerificationModal = ({ isOpen, onClose, gameCode, rounds }) => {
                         {rounds.map((round) => (
                             <div key={round.id} className="round-item">
                                 <div className="round-info">
-                                    <span className="round-num">Round {round.id}</span>
-                                    <span className="round-result">🎲 {round.result}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span className="round-num">Round {round.id}</span>
+                                        <span className="round-id-raw">#{round.id.toString().slice(0, 8)}...</span>
+                                    </div>
                                 </div>
+                                <span className="round-result">🎲 {round.result}</span>
                                 <div className="round-links">
                                     {round.txHash ? (
                                         <a

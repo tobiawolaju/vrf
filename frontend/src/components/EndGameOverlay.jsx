@@ -60,17 +60,17 @@ const EndGameOverlay = ({ winner, gameState }) => {
                 <div className="action-buttons">
                     {!hasMinted ? (
                         <button
-                            className="btn-mint"
+                            className="btn-helper"
                             onClick={handleMint}
                             disabled={isMinting}
                         >
                             {isMinting ? "Minting..." : "🥇 Mint Reward"}
                         </button>
                     ) : (
-                        <button className="btn-mint disabled" disabled>✅ Minted</button>
+                        <button className="btn-helper disabled" disabled>✅ Minted</button>
                     )}
 
-                    <button className="btn-verify" onClick={() => setShowVerify(true)}>
+                    <button className="btn-helper" onClick={() => setShowVerify(true)}>
                         🔍 Verify Rolls
                     </button>
 
