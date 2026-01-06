@@ -58,6 +58,38 @@
     font-weight: 800;
 }
 
+.winner-credits {
+    font-size: 1.8rem;
+    color: var(--success-color);
+    text-shadow: 1px 1px 0 #000;
+}
+
+.rank-display {
+    margin-bottom: 30px;
+    background: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    transform: rotate(-1deg);
+    border: 2px solid #fff;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.rank-display p {
+    color: #fff;
+    font-size: 1.2rem;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.highlight-rank {
+    color: var(--accent-color);
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
 /* Helper Buttons (Mint, Verify) */
 .action-buttons {
     display: flex;
