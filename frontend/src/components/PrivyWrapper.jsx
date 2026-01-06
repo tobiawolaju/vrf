@@ -26,7 +26,7 @@ export default function PrivyWrapper({ children }) {
             config={{
                 supportedChains: [monadMainnet, monadTestnet, mainnet],
                 defaultChain: monadMainnet,
-                loginMethods: ['twitter'],
+                loginMethods: ['twitter', 'wallet'],
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',
                 },
