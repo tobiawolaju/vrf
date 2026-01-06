@@ -101,7 +101,7 @@ export async function settleHardenedRoll(requestId, walletClient, publicClient) 
         // Poll for proof (retry a few times)
         let proof = null;
         for (let i = 0; i < 10; i++) {
-             try {
+            try {
                 const url = `${SWITCHBOARD_CROSSBAR_URL}/updates/eth/randomness?ids=${requestId}`;
                 const res = await fetch(url);
                 if (res.ok) {
@@ -111,8 +111,8 @@ export async function settleHardenedRoll(requestId, walletClient, publicClient) 
                         break;
                     }
                 }
-             } catch (err) { /* ignore network blips */ }
-             await new Promise(r => setTimeout(r, 2000)); // Wait 2s between polls
+            } catch (err) { /* ignore network blips */ }
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s between polls
         }
 
         if (!proof) throw new Error("Could not fetch proof from Crossbar.");
@@ -136,3 +136,36 @@ export async function settleHardenedRoll(requestId, walletClient, publicClient) 
     }
 }
 
+// --- REWARD NFT ---
+export const REWARD_NFT_ADDRESS = "0xE7C41Ed19AE276bD2507b0377061617fa4E281E0";
+export const REWARD_NFT_ABI = [
+    {
+        "type": "function",
+        "name": "mintReward",
+        "inputs": [{ "name": "player", "type": "address" }],
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable"
+    }
+];
+
+export async function mintVictoryBadge(walletClient, publicClient) {
+    try {
+        console.log("🏆 Minting Victory Badge...");
+        const [account] = await walletClient.getAddresses();
+
+        const hash = await walletClient.writeContract({
+            address: REWARD_NFT_ADDRESS,
+            abi: REWARD_NFT_ABI,
+            functionName: 'mintReward',
+            args: [account],
+            account
+        });
+
+        console.log(`   ✅ Mint TX: ${hash}`);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        return { success: true, hash, receipt };
+    } catch (e) {
+        console.error("❌ mintVictoryBadge Error:", e.message);
+        return { success: false, error: e.message };
+    }
+}
