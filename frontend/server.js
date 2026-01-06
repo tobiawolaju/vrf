@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import dotenv from 'dotenv';
 
 dotenv.config();
+const DEMO_MODE = process.env.DEMO_MODE === 'true';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -47,6 +48,7 @@ if (process.env.ADMIN_PRIVATE_KEY) {
 
 // Memory stores for orchestration
 const pendingRequests = new Map(); // requestId -> roundId
+const autoRollingGames = new Set(); // gameCode -> bool
 
 /**
  * Switchboard Crank: Polls Switchboard Crossbar and settles
@@ -162,6 +164,37 @@ async function processGameCrank() {
             if (JSON.stringify(game) !== originalState) {
                 console.log(`⚙️ [Crank] Advancing Game ${game.gameCode} to ${game.phase} phase`);
                 await db.setGame(game.gameCode, game);
+            }
+
+            // 4. Demo Mode / Auto-Roll logic
+            if (game.phase === 'rolling' && DEMO_MODE && !autoRollingGames.has(game.gameCode)) {
+                if (!crankWallet) {
+                    console.warn("⚠️ Demo Mode active but no ADMIN_PRIVATE_KEY for crankWallet.");
+                } else {
+                    autoRollingGames.add(game.gameCode);
+                    console.log(`🎲 [Demo] Auto-rolling for Game ${game.gameCode} Round ${game.currentRoundId}`);
+
+                    // Trigger Roll
+                    try {
+                        const hash = await crankWallet.writeContract({
+                            address: CONTRACT_ADDRESS,
+                            abi: DICEROLLER_ABI,
+                            functionName: 'requestDiceRoll',
+                            args: [BigInt(game.currentRoundId), game.gameCode],
+                            account: crankWallet.account
+                        });
+                        console.log(`   ✅ Demo Roll TX: ${hash}`);
+                        // Don't remove from set immediately; wait for phase change in next crank or event
+                    } catch (e) {
+                        console.error(`   ❌ Demo Roll Error:`, e.message);
+                        autoRollingGames.delete(game.gameCode); // Retry on next tick if failed
+                    }
+                }
+            }
+
+            // Cleanup autoRolling set if no longer rolling
+            if (game.phase !== 'rolling' && autoRollingGames.has(game.gameCode)) {
+                autoRollingGames.delete(game.gameCode);
             }
         }
     } catch (e) {
