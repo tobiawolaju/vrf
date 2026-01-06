@@ -37,6 +37,50 @@ function App() {
     const vrfInProgress = useRef(null); // stores the currentRoundId being processed
     const userRandomRef = useRef(null); // stores local secret
 
+    // --- SESSION PERSISTENCE ---
+    useEffect(() => {
+        const storedSession = localStorage.getItem('monkeyHand_session');
+        if (storedSession && view === 'home' && !gameCode) {
+            try {
+                const { gameCode: savedCode, playerId: savedId } = JSON.parse(storedSession);
+                if (savedCode && savedId) {
+                    console.log(`💾 Restoring session for Game: ${savedCode}, Player: ${savedId}`);
+                    setGameCode(savedCode);
+                    setPlayerId(savedId);
+
+                    // Verify validity by fetching state immediately
+                    fetch(`${API_BASE}/state?gameCode=${savedCode}&playerId=${savedId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.gameCode) {
+                                setGameState(data);
+                                setView('game');
+                            } else {
+                                // Invalid session, clear it
+                                localStorage.removeItem('monkeyHand_session');
+                            }
+                        })
+                        .catch(() => localStorage.removeItem('monkeyHand_session'));
+                }
+            } catch (e) {
+                console.error("Failed to parse session", e);
+                localStorage.removeItem('monkeyHand_session');
+            }
+        }
+    }, [view, gameCode]);
+
+    const saveSession = (code, id) => {
+        localStorage.setItem('monkeyHand_session', JSON.stringify({ gameCode: code, playerId: id }));
+    };
+
+    const clearSession = () => {
+        localStorage.removeItem('monkeyHand_session');
+        setGameCode('');
+        setPlayerId('');
+        setGameState(null);
+        setView('home');
+    };
+
     // Animation states
     const [visualRoll, setVisualRoll] = useState(1);
     const [isRolling, setIsRolling] = useState(false);
@@ -313,6 +357,24 @@ function App() {
             });
             const data = await res.json();
             setGameCode(data.gameCode);
+            // Host doesn't have playerId yet until they join? 
+            // Wait, createGame just sets view to 'create'. 
+            // The Host actually "joins" when they enter the "Waiting Room" usually?
+            // Checking logic: `createGame` -> `setView('create')`. 
+            // Then `CreateGame` component likely has a "Start" or "Join" button?
+            // Viewing `CreateGame.jsx` (implied): usually it just shows the code.
+            // Actually, `App.jsx` `createGame` just sets `gameCode`.
+            // The flow is: Create -> Get Code -> Join (Host auto-joins? No, usually they join explicitly or `CreateGame` handles it).
+            // Let's check `CreateGame.jsx` logic later if needed.
+            // But usually the host has to JOIN their own game to get a `playerId`.
+            // So we only save session in `joinGame` or if `createGame` returns a player ID (it doesn't seems so).
+            // `data.gameCode` is returning.
+            // If `CreateGame` page forces them to "Join", then `joinGame` will handle the saving.
+            // So I will LEAVE this alone for now, and strictly persist in `joinGame`.
+            // BUT, if I refresh on 'create' screen, I lose the code.
+            // Maybe persisting `gameCode` is enough?
+            // The user asked for "access to the match".
+            // Let's stick to `joinGame` for full session (Player ID + Game Code).
             setView('create');
         } catch (err) {
             console.error('Failed to create game:', err);
@@ -354,6 +416,7 @@ function App() {
                 setGameCode(joinCode);
                 setPlayerId(data.playerId);
                 setGameState(data.gameState);
+                saveSession(joinCode, data.playerId); // Persist session
                 setView('game');
             } else {
                 alert(data.error || 'Failed to join game');
@@ -406,7 +469,7 @@ function App() {
                     createGame={createGame}
                     setView={setView}
                     login={login}
-                    logout={logout}
+                    logout={clearSession} // Clear session on logout
                     authenticated={authenticated}
                     user={user}
                 />
@@ -449,6 +512,7 @@ function App() {
                 handleSkip={handleSkip}
                 handleDragOver={handleDragOver}
                 handleDrop={handleDrop}
+                onLeave={clearSession} // Pass leave handler
             />
         );
     };
