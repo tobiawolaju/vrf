@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { requestHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
+import { decodeEventLog } from 'viem';
+import { requestHardenedRoll, settleHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
@@ -95,15 +96,17 @@ function App() {
                     if (res.success && res.receipt) {
                         console.log("   ✅ Transaction Confirmed. Parsing logs...");
 
-                        // 3. Client-Side Resolution (Fast path)
+                        // 3. Client-Side Resolution (Fast path & Fallback)
                         const logs = res.receipt.logs;
+                        let foundResult = false;
+                        let requestId = null;
+
                         for (const log of logs) {
                             try {
                                 const event = decodeEventLog({ abi: DICEROLLER_ABI, data: log.data, topics: log.topics });
                                 if (event.eventName === 'DiceRolled') {
                                     const { result } = event.args;
                                     console.log(`   🎯 Dice Result: ${result}. Notifying Backend...`);
-
                                     await fetch(`${API_BASE}/resolve`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -115,8 +118,42 @@ function App() {
                                         })
                                     });
                                     console.log("   ✨ Backend notified of resolution.");
+                                    foundResult = true;
+                                    break;
+                                }
+                                if (event.eventName === 'DiceRequested') {
+                                    requestId = event.args.requestId;
                                 }
                             } catch (e) { /* ignore other events */ }
+                        }
+
+                        // Fallback: If no result but requested, Host becomes the Crank
+                        if (!foundResult && requestId) {
+                            console.log("   🤔 No immediate result. Attempting Host-Side Settlement...");
+                            const settleRes = await settleHardenedRoll(requestId, walletClient, publicClient);
+
+                            if (settleRes.success && settleRes.receipt) {
+                                for (const log of settleRes.receipt.logs) {
+                                    try {
+                                        const event = decodeEventLog({ abi: DICEROLLER_ABI, data: log.data, topics: log.topics });
+                                        if (event.eventName === 'DiceRolled') {
+                                            const { result } = event.args;
+                                            console.log(`   🎯 Dice Result (Settled): ${result}. Notifying Backend...`);
+                                            await fetch(`${API_BASE}/resolve`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    gameCode: gameId,
+                                                    roundId: roundId,
+                                                    result: Number(result),
+                                                    txHash: settleRes.hash
+                                                })
+                                            });
+                                            console.log("   ✨ Backend notified of resolution.");
+                                        }
+                                    } catch (e) { /* ignore */ }
+                                }
+                            }
                         }
                     }
                 }

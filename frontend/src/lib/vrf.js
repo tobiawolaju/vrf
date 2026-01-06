@@ -90,3 +90,49 @@ export async function requestHardenedRoll(roundId, gameId, walletClient, publicC
     }
 }
 
+/**
+ * Step 2: Settle Roll (Client-Side / Host-Side)
+ * Used when backend crank is slow or offline.
+ */
+export async function settleHardenedRoll(requestId, walletClient, publicClient) {
+    try {
+        console.log(`🔓 [VRF] Fetching Switchboard Proof for Req: ${requestId}...`);
+
+        // Poll for proof (retry a few times)
+        let proof = null;
+        for (let i = 0; i < 10; i++) {
+             try {
+                const url = `${SWITCHBOARD_CROSSBAR_URL}/updates/eth/randomness?ids=${requestId}`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.updates && data.updates.length > 0) {
+                        proof = data.updates[0];
+                        break;
+                    }
+                }
+             } catch (err) { /* ignore network blips */ }
+             await new Promise(r => setTimeout(r, 2000)); // Wait 2s between polls
+        }
+
+        if (!proof) throw new Error("Could not fetch proof from Crossbar.");
+
+        const [account] = await walletClient.getAddresses();
+        const hash = await walletClient.writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: DICEROLLER_ABI,
+            functionName: 'settleAndFulfill',
+            args: [proof, requestId],
+            account
+        });
+
+        console.log(`   ✅ Settle TX Sent: ${hash}`);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        return { success: true, hash, receipt };
+
+    } catch (e) {
+        console.error("❌ settleHardenedRoll Error:", e.message);
+        return { success: false, error: e.message };
+    }
+}
+
