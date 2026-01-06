@@ -108,16 +108,19 @@ const EndGameOverlay = ({ winner, gameState, history }) => {
                 )}
 
                 <div className="action-buttons">
-                    {!hasMinted ? (
-                        <button
-                            className="btn-helper"
-                            onClick={handleMint}
-                            disabled={isMinting}
-                        >
-                            {isMinting ? "Minting..." : "🥇 Mint Victory Badge"}
-                        </button>
-                    ) : (
-                        <button className="btn-helper disabled" disabled>✅ Badge Minted</button>
+                    {/* Only show Mint button if player is the winner (Rank 1) */}
+                    {myRank === 1 && (
+                        !hasMinted ? (
+                            <button
+                                className="btn-helper"
+                                onClick={handleMint}
+                                disabled={isMinting}
+                            >
+                                {isMinting ? "Minting..." : "🥇 Mint Victory Badge"}
+                            </button>
+                        ) : (
+                            <button className="btn-helper disabled" disabled>✅ Badge Minted</button>
+                        )
                     )}
 
                     <button className="btn-helper" onClick={() => setShowVerify(true)}>
