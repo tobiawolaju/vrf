@@ -4,7 +4,7 @@ import { mintVictoryBadge } from '../lib/vrf';
 import VerificationModal from './VerificationModal';
 import './EndGameOverlay.css';
 
-const EndGameOverlay = ({ winner, gameState }) => {
+const EndGameOverlay = ({ winner, gameState, history }) => {
     const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
     const { address } = useAccount();
@@ -14,16 +14,6 @@ const EndGameOverlay = ({ winner, gameState }) => {
     const [showVerify, setShowVerify] = useState(false);
 
     if (!winner) return null;
-
-    // Detect if current user is the winner
-    // Note: winner.id might be internal ID, need to check address or assumption
-    // For now, let's assume if they have the wallet connected that matches... 
-    // actually winner object doesn't have address usually? 
-    // Let's assume ANYONE can verify, only winner can mint.
-    // We might need to check player list to map ID to address if needed, 
-    // but for now, let's just show button if they are "connected" and maybe let contract fail if wrong person?
-    // Better: Check if winner.id matches local variable... but we don't have local playerId here. 
-    // Let's just show it.
 
     const handleMint = async () => {
         if (!walletClient) return alert("Connect wallet first!");
@@ -38,14 +28,9 @@ const EndGameOverlay = ({ winner, gameState }) => {
         }
     };
 
-    // Prepare rounds data for verification
-    // We need to adhere to format: { id, result, txHash }
-    // gameState might not have history of all rounds easily unless we track it or fetch it.
-    // Simple workaround: Use whatever we have. 
-    // If backend doesn't send history, we might only show "Last Round".
-    // Let's assume we can show at least the current round info or nothing for now until we fix backend to send history.
-    const roundsMock = [
-        { id: gameState.currentRoundId, result: gameState.lastRoll, txHash: gameState.lastRollTxHash }
+    // Use passed history or fallback to current state if empty (e.g. refresh)
+    const roundsData = history && history.length > 0 ? history : [
+        { id: gameState.currentRoundId || 5, result: gameState.lastRoll, txHash: gameState.lastRollTxHash }
     ];
 
     return (
@@ -84,7 +69,7 @@ const EndGameOverlay = ({ winner, gameState }) => {
                 isOpen={showVerify}
                 onClose={() => setShowVerify(false)}
                 gameCode={gameState.gameCode}
-                rounds={roundsMock}
+                rounds={roundsData}
             />
         </div>
     );

@@ -22,6 +22,7 @@ const Gameplay = ({
 }) => {
     const [debugRolling, setDebugRolling] = React.useState(false);
     const [debugRoll, setDebugRoll] = React.useState(1);
+    const [roundHistory, setRoundHistory] = React.useState([]);
 
     React.useEffect(() => {
         let interval;
@@ -32,6 +33,21 @@ const Gameplay = ({
         }
         return () => clearInterval(interval);
     }, [debugRolling]);
+
+    // Track round history for EndGame verification
+    React.useEffect(() => {
+        if (gameState.lastRollTxHash && gameState.lastRoll) {
+            setRoundHistory(prev => {
+                const exists = prev.some(r => r.txHash === gameState.lastRollTxHash);
+                if (exists) return prev;
+                return [...prev, {
+                    id: prev.length + 1, // Simple increment based on captured count
+                    result: gameState.lastRoll,
+                    txHash: gameState.lastRollTxHash
+                }];
+            });
+        }
+    }, [gameState.lastRollTxHash, gameState.lastRoll]);
 
     const canCommit = currentPlayer && currentPlayer.cards.some(c => !c.isBurned) && gameState.phase === 'commit';
 
@@ -106,7 +122,7 @@ const Gameplay = ({
                 handleSkip={handleSkip}
             />
 
-            {gameState.phase === 'ended' && <EndGameOverlay winner={gameState.winner} gameState={gameState} />}
+            {gameState.phase === 'ended' && <EndGameOverlay winner={gameState.winner} gameState={gameState} history={roundHistory} />}
         </div>
     );
 };

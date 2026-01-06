@@ -27,7 +27,7 @@ const VerificationModal = ({ isOpen, onClose, gameCode, rounds }) => {
                                 <div className="round-links">
                                     {round.txHash ? (
                                         <a
-                                            href={`https://explorer.monad-testnet.devnet.monad.xyz/tx/${round.txHash}`}
+                                            href={`https://testnet.monadvision.com/tx/${round.txHash}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="verify-link"
