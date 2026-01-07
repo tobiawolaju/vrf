@@ -17,7 +17,7 @@ import BalatroBackground from './components/BalatroBackground';
 const API_BASE = '/api';
 
 function App() {
-    const { login, logout, authenticated, user } = usePrivy();
+    const { login, logout: privyLogout, authenticated, user } = usePrivy();
     const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
 
