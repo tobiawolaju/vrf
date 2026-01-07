@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { decodeEventLog, createWalletClient, custom } from 'viem';
+import { decodeEventLog } from 'viem';
 import { requestHardenedRoll, settleHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
-import { monadMainnet } from './utils/chains';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
@@ -14,12 +13,11 @@ import Gameplay from './pages/Gameplay';
 import Leaderboard from './pages/Leaderboard';
 import Deck from './pages/Deck';
 import BalatroBackground from './components/BalatroBackground';
-import OverlayAnimation from './components/OverlayAnimation';
 
 const API_BASE = '/api';
 
 function App() {
-    const { login, logout: privyLogout, authenticated, user } = usePrivy();
+    const { login, logout, authenticated, user } = usePrivy();
     const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
 
@@ -39,79 +37,13 @@ function App() {
     const vrfInProgress = useRef(null); // stores the currentRoundId being processed
     const userRandomRef = useRef(null); // stores local secret
 
-
-
-    // --- SESSION PERSISTENCE ---
-    useEffect(() => {
-        const storedSession = localStorage.getItem('monkeyHand_session');
-        if (storedSession && view === 'home' && !gameCode) {
-            try {
-                const { gameCode: savedCode, playerId: savedId } = JSON.parse(storedSession);
-                if (savedCode && savedId) {
-                    console.log(`💾 Restoring session for Game: ${savedCode}, Player: ${savedId}`);
-                    setGameCode(savedCode);
-                    setPlayerId(savedId);
-
-                    // Verify validity by fetching state immediately
-                    fetch(`${API_BASE}/state?gameCode=${savedCode}&playerId=${savedId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.gameCode) {
-                                setGameState(data);
-                                setView('game');
-                            } else {
-                                // Invalid session, clear it
-                                localStorage.removeItem('monkeyHand_session');
-                            }
-                        })
-                        .catch(() => localStorage.removeItem('monkeyHand_session'));
-                }
-            } catch (e) {
-                console.error("Failed to parse session", e);
-                localStorage.removeItem('monkeyHand_session');
-            }
-        }
-    }, [view, gameCode]);
-
-    const saveSession = (code, id) => {
-        localStorage.setItem('monkeyHand_session', JSON.stringify({ gameCode: code, playerId: id }));
-    };
-
-    const clearSession = () => {
-        localStorage.removeItem('monkeyHand_session');
-        setGameCode('');
-        setPlayerId('');
-        setGameState(null);
-        setView('home');
-    };
-
-    const fullLogout = async () => {
-        try {
-            console.log("Logging out...");
-            clearSession();      // kill UI + game first
-            await privyLogout(); // kill auth
-            console.log("Privy logout complete");
-            window.location.href = '/'; // Hard reset to home
-        } catch (error) {
-            console.error("Logout failed:", error);
-            // Fallback: reload anyway
-            window.location.reload();
-        }
-    };
-
     // Animation states
     const [visualRoll, setVisualRoll] = useState(1);
     const [isRolling, setIsRolling] = useState(false);
 
     // --- ORACLE NATIVE VRF FLOW (Hardened) ---
-    // User requested prioritization of Embedded Wallet
-    const { wallets } = useWallets();
-
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'rolling' || !authenticated) return;
-        // Do not block on regular walletClient if we have privy wallet
-        // Wait for ANY wallet to be ready if using embedded
-
+        if (!gameState || gameState.phase !== 'rolling' || !walletClient || !publicClient || !authenticated) return;
         if (vrfInProgress.current === gameState.currentRoundId) return;
 
         const handleVRF = async () => {
@@ -133,32 +65,6 @@ function App() {
 
             console.log(`👑 [VRF] I am the Host (${playerId}). Leading Orchestration for Round ${roundId}`);
             vrfInProgress.current = roundId;
-
-            // ⚡ WALLET SELECTION LOGIC ⚡
-            // Prioritize Privy Embedded Wallet
-            let activeWalletClient = walletClient; // Default to wagmi
-
-            const privyWallet = wallets.find(w => w.walletClientType === 'privy');
-            if (privyWallet) {
-                console.log("   💳 Using Privy Embedded Wallet for VRF...");
-                try {
-                    await privyWallet.switchChain(monadMainnet.id);
-                    const provider = await privyWallet.getEthereumProvider();
-                    activeWalletClient = createWalletClient({
-                        account: privyWallet.address,
-                        chain: monadMainnet,
-                        transport: custom(provider)
-                    });
-                } catch (err) {
-                    console.error("   ⚠️ Failed to switch/use Privy wallet:", err);
-                    // Fallback to default wagmi walletClient if available
-                }
-            }
-
-            if (!activeWalletClient) {
-                console.error("   ❌ No wallet client available for VRF.");
-                return;
-            }
 
             try {
                 // 1. Check if already requested (in case of overlap)
@@ -186,7 +92,7 @@ function App() {
                     }
                 } else {
                     // 2. Request Roll (Switchboard)
-                    const res = await requestHardenedRoll(roundId, gameId, activeWalletClient, publicClient);
+                    const res = await requestHardenedRoll(roundId, gameId, walletClient, publicClient);
                     if (res.success && res.receipt) {
                         console.log("   ✅ Transaction Confirmed. Parsing logs...");
 
@@ -224,7 +130,7 @@ function App() {
                         // Fallback: If no result but requested, Host becomes the Crank
                         if (!foundResult && requestId) {
                             console.log("   🤔 No immediate result. Attempting Host-Side Settlement...");
-                            const settleRes = await settleHardenedRoll(requestId, activeWalletClient, publicClient);
+                            const settleRes = await settleHardenedRoll(requestId, walletClient, publicClient);
 
                             if (settleRes.success && settleRes.receipt) {
                                 for (const log of settleRes.receipt.logs) {
@@ -258,7 +164,7 @@ function App() {
         };
 
         handleVRF();
-    }, [gameState?.phase, gameState?.currentRoundId, gameState?.hostId, playerId, walletClient, publicClient, authenticated, wallets]);
+    }, [gameState?.phase, gameState?.currentRoundId, gameState?.hostId, playerId, walletClient, publicClient, authenticated]);
 
     // Poll game state
     useEffect(() => {
@@ -393,62 +299,6 @@ function App() {
         return () => clearTimeout(timeoutId);
     }, [gameState?.phase, gameState?.lastRoll]);
 
-    // --- OVERLAY ANIMATION LOGIC ---
-    const [overlayConfig, setOverlayConfig] = useState({
-        isVisible: false,
-        image: null,
-        onMidPoint: null,
-        onComplete: null
-    });
-
-    const triggerOverlay = (image, midPointCallback) => {
-        setOverlayConfig({
-            isVisible: true,
-            image: image,
-            onMidPoint: midPointCallback,
-            onComplete: () => setOverlayConfig(prev => ({ ...prev, isVisible: false }))
-        });
-    };
-
-    const transitionToView = (newView) => {
-        if (view === newView) return;
-        triggerOverlay('/fximg/transition.png', () => {
-            setView(newView);
-        });
-    };
-
-    // Watch for Round Changes & Game End
-    const lastRoundRef = useRef(0);
-    const lastPhaseRef = useRef(null);
-
-    useEffect(() => {
-        if (!gameState) return;
-
-        // Round Start Animation
-        // Trigger when round ID increases and phase becomes 'waiting' or 'rolling' (start of new round)
-        if (gameState.currentRoundId > lastRoundRef.current) {
-            // Avoid triggering on initial load if we are already deep in the game
-            // But usually we want to see "Round X" if we just joined? Maybe not.
-            // Let's safe guard: only if we were already continuously watching (lastRoundRef > 0) or if it's Round 1
-            if (lastRoundRef.current > 0 || gameState.currentRoundId === 1) {
-                const roundImg = `/fximg/round_${gameState.currentRoundId}.png`;
-                triggerOverlay(roundImg, null);
-            }
-            lastRoundRef.current = gameState.currentRoundId;
-        }
-
-        // Game Over Animation
-        if (gameState.phase === 'ended' && lastPhaseRef.current !== 'ended') {
-            const isWinner = gameState.winner?.id === playerId;
-            const resultImg = isWinner ? '/fximg/you_win.png' : '/fximg/you_lose.png';
-            triggerOverlay(resultImg, null);
-        }
-
-        lastPhaseRef.current = gameState.phase;
-
-    }, [gameState?.currentRoundId, gameState?.phase, gameState?.winner, playerId]);
-
-
     const createGame = async () => {
         if (!authenticated) {
             login();
@@ -463,7 +313,7 @@ function App() {
             });
             const data = await res.json();
             setGameCode(data.gameCode);
-            transitionToView('create');
+            setView('create');
         } catch (err) {
             console.error('Failed to create game:', err);
         }
@@ -504,8 +354,7 @@ function App() {
                 setGameCode(joinCode);
                 setPlayerId(data.playerId);
                 setGameState(data.gameState);
-                saveSession(joinCode, data.playerId); // Persist session
-                transitionToView('game');
+                setView('game');
             } else {
                 alert(data.error || 'Failed to join game');
             }
@@ -542,11 +391,11 @@ function App() {
     // RENDER ROUTING
     const renderContent = () => {
         if (view === 'leaderboard') {
-            return <Leaderboard setView={transitionToView} />;
+            return <Leaderboard setView={setView} />;
         }
 
         if (view === 'deck') {
-            return <Deck setView={transitionToView} />;
+            return <Deck setView={setView} />;
         }
 
         if (view === 'home') {
@@ -555,9 +404,9 @@ function App() {
                     startDelay={startDelay}
                     setStartDelay={setStartDelay}
                     createGame={createGame}
-                    setView={transitionToView}
+                    setView={setView}
                     login={login}
-                    fullLogout={fullLogout}
+                    logout={logout}
                     authenticated={authenticated}
                     user={user}
                 />
@@ -565,7 +414,7 @@ function App() {
         }
 
         if (view === 'create') {
-            return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={transitionToView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
+            return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={setView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
         }
 
         if (view === 'join') {
@@ -574,7 +423,7 @@ function App() {
                     joinCode={joinCode}
                     setJoinCode={setJoinCode}
                     joinGame={joinGame}
-                    setView={transitionToView}
+                    setView={setView}
                     login={login}
                     authenticated={authenticated}
                 />
@@ -600,7 +449,6 @@ function App() {
                 handleSkip={handleSkip}
                 handleDragOver={handleDragOver}
                 handleDrop={handleDrop}
-                onLeave={clearSession} // Pass leave handler
             />
         );
     };
@@ -608,12 +456,6 @@ function App() {
     return (
         <div className="app">
             <BalatroBackground />
-            <OverlayAnimation
-                isVisible={overlayConfig.isVisible}
-                imageSrc={overlayConfig.image}
-                onMidPoint={overlayConfig.onMidPoint}
-                onComplete={overlayConfig.onComplete}
-            />
             <div className="crt-container" />
             <div className="vignette" />
             {renderContent()}
