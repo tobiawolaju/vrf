@@ -5,7 +5,6 @@ import PlayerHand from '../components/PlayerHand';
 import RoundStatus from '../components/RoundStatus';
 import EndGameOverlay from '../components/EndGameOverlay';
 import VoteTracker from '../components/VoteTracker';
-import TransitionOverlay from '../components/TransitionOverlay'; // Import added
 import './Gameplay.css';
 
 const Gameplay = ({
@@ -25,15 +24,6 @@ const Gameplay = ({
     const [debugRolling, setDebugRolling] = React.useState(false);
     const [debugRoll, setDebugRoll] = React.useState(1);
     const [roundHistory, setRoundHistory] = React.useState([]);
-
-    // Overlay State
-    const [overlayConfig, setOverlayConfig] = React.useState({
-        isVisible: false,
-        type: 'round',
-        message: '1'
-    });
-    const prevRoundRef = React.useRef(gameState.round);
-    const prevPhaseRef = React.useRef(gameState.phase);
 
     React.useEffect(() => {
         let interval;
@@ -60,38 +50,6 @@ const Gameplay = ({
         }
     }, [gameState.lastRollTxHash, gameState.lastRoll]);
 
-    // Transition Overlay Logic
-    React.useEffect(() => {
-        // Detect Round Change
-        if (gameState.round !== prevRoundRef.current && gameState.round > 0) {
-            setOverlayConfig({
-                isVisible: true,
-                type: 'round',
-                message: gameState.round.toString()
-            });
-            prevRoundRef.current = gameState.round;
-        }
-
-        // Detect Game End
-        if (gameState.phase === 'ended' && prevPhaseRef.current !== 'ended') {
-            const isWinner = gameState.winner === currentPlayer?.id;
-            setOverlayConfig({
-                isVisible: true,
-                type: isWinner ? 'win' : 'lose',
-                message: isWinner ? 'YOU WIN' : 'YOU LOSE'
-            });
-        }
-
-        // Initial detection for Match Start (optional, if round is 1 and just mounted)
-        // logic can be refined if needed
-
-        prevPhaseRef.current = gameState.phase;
-    }, [gameState.round, gameState.phase, gameState.winner, currentPlayer]);
-
-    const handleOverlayComplete = () => {
-        setOverlayConfig(prev => ({ ...prev, isVisible: false }));
-    };
-
     const canCommit = currentPlayer && currentPlayer.cards.some(c => !c.isBurned) && gameState.phase === 'commit';
 
     const triggerVRF = async () => {
@@ -115,12 +73,6 @@ const Gameplay = ({
 
     return (
         <div className="gameplay-container">
-            <TransitionOverlay
-                isVisible={overlayConfig.isVisible}
-                type={overlayConfig.type}
-                roundNumber={parseInt(overlayConfig.message) || 1}
-                onComplete={handleOverlayComplete}
-            />
 
             {/* Leave Match Button */}
             <button className="btn-leave-match" onClick={onLeave}>
