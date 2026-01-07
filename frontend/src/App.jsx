@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, createWalletClient, custom } from 'viem';
 import { requestHardenedRoll, settleHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
+import { monadMainnet } from './utils/chains';
 // Pages
 import Home from './pages/Home';
 import CreateGame from './pages/CreateGame';
@@ -87,8 +88,14 @@ function App() {
     const [isRolling, setIsRolling] = useState(false);
 
     // --- ORACLE NATIVE VRF FLOW (Hardened) ---
+    // User requested prioritization of Embedded Wallet
+    const { wallets } = useWallets();
+
     useEffect(() => {
-        if (!gameState || gameState.phase !== 'rolling' || !walletClient || !publicClient || !authenticated) return;
+        if (!gameState || gameState.phase !== 'rolling' || !authenticated) return;
+        // Do not block on regular walletClient if we have privy wallet
+        // Wait for ANY wallet to be ready if using embedded
+
         if (vrfInProgress.current === gameState.currentRoundId) return;
 
         const handleVRF = async () => {
@@ -110,6 +117,32 @@ function App() {
 
             console.log(`👑 [VRF] I am the Host (${playerId}). Leading Orchestration for Round ${roundId}`);
             vrfInProgress.current = roundId;
+
+            // ⚡ WALLET SELECTION LOGIC ⚡
+            // Prioritize Privy Embedded Wallet
+            let activeWalletClient = walletClient; // Default to wagmi
+
+            const privyWallet = wallets.find(w => w.walletClientType === 'privy');
+            if (privyWallet) {
+                console.log("   💳 Using Privy Embedded Wallet for VRF...");
+                try {
+                    await privyWallet.switchChain(monadMainnet.id);
+                    const provider = await privyWallet.getEthereumProvider();
+                    activeWalletClient = createWalletClient({
+                        account: privyWallet.address,
+                        chain: monadMainnet,
+                        transport: custom(provider)
+                    });
+                } catch (err) {
+                    console.error("   ⚠️ Failed to switch/use Privy wallet:", err);
+                    // Fallback to default wagmi walletClient if available
+                }
+            }
+
+            if (!activeWalletClient) {
+                console.error("   ❌ No wallet client available for VRF.");
+                return;
+            }
 
             try {
                 // 1. Check if already requested (in case of overlap)
@@ -137,7 +170,7 @@ function App() {
                     }
                 } else {
                     // 2. Request Roll (Switchboard)
-                    const res = await requestHardenedRoll(roundId, gameId, walletClient, publicClient);
+                    const res = await requestHardenedRoll(roundId, gameId, activeWalletClient, publicClient);
                     if (res.success && res.receipt) {
                         console.log("   ✅ Transaction Confirmed. Parsing logs...");
 
@@ -175,7 +208,7 @@ function App() {
                         // Fallback: If no result but requested, Host becomes the Crank
                         if (!foundResult && requestId) {
                             console.log("   🤔 No immediate result. Attempting Host-Side Settlement...");
-                            const settleRes = await settleHardenedRoll(requestId, walletClient, publicClient);
+                            const settleRes = await settleHardenedRoll(requestId, activeWalletClient, publicClient);
 
                             if (settleRes.success && settleRes.receipt) {
                                 for (const log of settleRes.receipt.logs) {
@@ -209,7 +242,7 @@ function App() {
         };
 
         handleVRF();
-    }, [gameState?.phase, gameState?.currentRoundId, gameState?.hostId, playerId, walletClient, publicClient, authenticated]);
+    }, [gameState?.phase, gameState?.currentRoundId, gameState?.hostId, playerId, walletClient, publicClient, authenticated, wallets]);
 
     // Poll game state
     useEffect(() => {
