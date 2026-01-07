@@ -13,7 +13,6 @@ import Gameplay from './pages/Gameplay';
 import Leaderboard from './pages/Leaderboard';
 import Deck from './pages/Deck';
 import BalatroBackground from './components/BalatroBackground';
-import OverlayAnimation from './components/OverlayAnimation';
 
 const API_BASE = '/api';
 
@@ -344,62 +343,6 @@ function App() {
         return () => clearTimeout(timeoutId);
     }, [gameState?.phase, gameState?.lastRoll]);
 
-    // --- OVERLAY ANIMATION LOGIC ---
-    const [overlayConfig, setOverlayConfig] = useState({
-        isVisible: false,
-        image: null,
-        onMidPoint: null,
-        onComplete: null
-    });
-
-    const triggerOverlay = (image, midPointCallback) => {
-        setOverlayConfig({
-            isVisible: true,
-            image: image,
-            onMidPoint: midPointCallback,
-            onComplete: () => setOverlayConfig(prev => ({ ...prev, isVisible: false }))
-        });
-    };
-
-    const transitionToView = (newView) => {
-        if (view === newView) return;
-        triggerOverlay('/fximg/transition.png', () => {
-            setView(newView);
-        });
-    };
-
-    // Watch for Round Changes & Game End
-    const lastRoundRef = useRef(0);
-    const lastPhaseRef = useRef(null);
-
-    useEffect(() => {
-        if (!gameState) return;
-
-        // Round Start Animation
-        // Trigger when round ID increases and phase becomes 'waiting' or 'rolling' (start of new round)
-        if (gameState.currentRoundId > lastRoundRef.current) {
-            // Avoid triggering on initial load if we are already deep in the game
-            // But usually we want to see "Round X" if we just joined? Maybe not.
-            // Let's safe guard: only if we were already continuously watching (lastRoundRef > 0) or if it's Round 1
-            if (lastRoundRef.current > 0 || gameState.currentRoundId === 1) {
-                const roundImg = `/fximg/round_${gameState.currentRoundId}.png`;
-                triggerOverlay(roundImg, null);
-            }
-            lastRoundRef.current = gameState.currentRoundId;
-        }
-
-        // Game Over Animation
-        if (gameState.phase === 'ended' && lastPhaseRef.current !== 'ended') {
-            const isWinner = gameState.winner?.id === playerId;
-            const resultImg = isWinner ? '/fximg/you_win.png' : '/fximg/you_lose.png';
-            triggerOverlay(resultImg, null);
-        }
-
-        lastPhaseRef.current = gameState.phase;
-
-    }, [gameState?.currentRoundId, gameState?.phase, gameState?.winner, playerId]);
-
-
     const createGame = async () => {
         if (!authenticated) {
             login();
@@ -414,7 +357,25 @@ function App() {
             });
             const data = await res.json();
             setGameCode(data.gameCode);
-            transitionToView('create');
+            // Host doesn't have playerId yet until they join? 
+            // Wait, createGame just sets view to 'create'. 
+            // The Host actually "joins" when they enter the "Waiting Room" usually?
+            // Checking logic: `createGame` -> `setView('create')`. 
+            // Then `CreateGame` component likely has a "Start" or "Join" button?
+            // Viewing `CreateGame.jsx` (implied): usually it just shows the code.
+            // Actually, `App.jsx` `createGame` just sets `gameCode`.
+            // The flow is: Create -> Get Code -> Join (Host auto-joins? No, usually they join explicitly or `CreateGame` handles it).
+            // Let's check `CreateGame.jsx` logic later if needed.
+            // But usually the host has to JOIN their own game to get a `playerId`.
+            // So we only save session in `joinGame` or if `createGame` returns a player ID (it doesn't seems so).
+            // `data.gameCode` is returning.
+            // If `CreateGame` page forces them to "Join", then `joinGame` will handle the saving.
+            // So I will LEAVE this alone for now, and strictly persist in `joinGame`.
+            // BUT, if I refresh on 'create' screen, I lose the code.
+            // Maybe persisting `gameCode` is enough?
+            // The user asked for "access to the match".
+            // Let's stick to `joinGame` for full session (Player ID + Game Code).
+            setView('create');
         } catch (err) {
             console.error('Failed to create game:', err);
         }
@@ -456,7 +417,7 @@ function App() {
                 setPlayerId(data.playerId);
                 setGameState(data.gameState);
                 saveSession(joinCode, data.playerId); // Persist session
-                transitionToView('game');
+                setView('game');
             } else {
                 alert(data.error || 'Failed to join game');
             }
@@ -493,11 +454,11 @@ function App() {
     // RENDER ROUTING
     const renderContent = () => {
         if (view === 'leaderboard') {
-            return <Leaderboard setView={transitionToView} />;
+            return <Leaderboard setView={setView} />;
         }
 
         if (view === 'deck') {
-            return <Deck setView={transitionToView} />;
+            return <Deck setView={setView} />;
         }
 
         if (view === 'home') {
@@ -506,7 +467,7 @@ function App() {
                     startDelay={startDelay}
                     setStartDelay={setStartDelay}
                     createGame={createGame}
-                    setView={transitionToView}
+                    setView={setView}
                     login={login}
                     logout={clearSession} // Clear session on logout
                     authenticated={authenticated}
@@ -516,7 +477,7 @@ function App() {
         }
 
         if (view === 'create') {
-            return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={transitionToView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
+            return <CreateGame gameCode={gameCode} startDelay={startDelay} setView={setView} setJoinCode={setJoinCode} copyToClipboard={copyToClipboard} />;
         }
 
         if (view === 'join') {
@@ -525,7 +486,7 @@ function App() {
                     joinCode={joinCode}
                     setJoinCode={setJoinCode}
                     joinGame={joinGame}
-                    setView={transitionToView}
+                    setView={setView}
                     login={login}
                     authenticated={authenticated}
                 />
@@ -559,12 +520,6 @@ function App() {
     return (
         <div className="app">
             <BalatroBackground />
-            <OverlayAnimation
-                isVisible={overlayConfig.isVisible}
-                imageSrc={overlayConfig.image}
-                onMidPoint={overlayConfig.onMidPoint}
-                onComplete={overlayConfig.onComplete}
-            />
             <div className="crt-container" />
             <div className="vignette" />
             {renderContent()}
