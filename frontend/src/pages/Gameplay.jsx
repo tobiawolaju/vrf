@@ -18,7 +18,8 @@ const Gameplay = ({
     handleCardClick,
     handleSkip,
     handleDragOver,
-    handleDrop
+    handleDrop,
+    onLeave
 }) => {
     const [debugRolling, setDebugRolling] = React.useState(false);
     const [debugRoll, setDebugRoll] = React.useState(1);
@@ -73,6 +74,10 @@ const Gameplay = ({
     return (
         <div className="gameplay-container">
 
+            {/* Leave Match Button */}
+            <button className="btn-leave-match" onClick={onLeave}>
+                ✕ LEAVE
+            </button>
 
             {currentPlayer?.hasCommitted && gameState.phase === 'commit' && (
                 <VoteTracker
