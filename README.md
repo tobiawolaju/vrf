@@ -1,4 +1,4 @@
-# 🎲 MonkeyHand
+# 🎲 MonkeyHand  (PLEASE IGNORE, Final Deployed Version lacked actual swicthboard or pyth vrf, I had difficulties implmenting it)
 
 A high-stakes multiplayer dice game powered by **Pyth Entropy (VRF) on Monad** for trust-minimal, protocol-hardened on-chain verifiable randomness.
 
