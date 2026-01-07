@@ -37,6 +37,12 @@ function App() {
     const vrfInProgress = useRef(null); // stores the currentRoundId being processed
     const userRandomRef = useRef(null); // stores local secret
 
+    const fullLogout = async () => {
+        await privyLogout();   // kill auth
+        clearSession();        // kill game
+    };
+
+
     // --- SESSION PERSISTENCE ---
     useEffect(() => {
         const storedSession = localStorage.getItem('monkeyHand_session');

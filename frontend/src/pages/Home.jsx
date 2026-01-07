@@ -101,7 +101,7 @@ const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, a
                         <span className="ticket-name">@{playerName}</span>
                         {ethWallet && <span className="ticket-wallet">{ethWallet.slice(0, 4)}...{ethWallet.slice(-4)}</span>}
                     </div>
-                    <button className="logout-mini" onClick={logout} title="Logout">✕</button>
+                    <button className="logout-mini" onClick={fullLogout} title="Logout">✕</button>
                 </div>
             )}
 
