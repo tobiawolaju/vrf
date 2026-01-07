@@ -548,7 +548,7 @@ function App() {
                     createGame={createGame}
                     setView={transitionToView}
                     login={login}
-                    onLogout={fullLogout} // Clear session AND logout of Privy
+                    logout={() => { clearSession(); logout(); }} // Clear session AND logout of Privy
                     authenticated={authenticated}
                     user={user}
                 />

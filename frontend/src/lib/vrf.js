@@ -10,7 +10,7 @@ import { keccak256, bytesToHex, hexToBytes } from 'viem';
  * 4. Backend calls settleAndFulfill on-chain
  */
 
-export const CONTRACT_ADDRESS = "0x4d2B7a429734348e0010d5cFB5B71D5cA99b86Ca"; // Pure Switchboard Deployment
+export const CONTRACT_ADDRESS = "0xb116F087B3e4dd2703997Ff0FE94EAF6eEF90e04"; // Pure Switchboard Deployment
 export const SWITCHBOARD_CROSSBAR_URL = "https://crossbar.switchboard.xyz";
 
 export const DICEROLLER_ABI = [
