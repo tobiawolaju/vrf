@@ -33,7 +33,7 @@ const CONTRACT_ABI = [
 // Placeholder vvv - User needs to update after deployment
 const CONTRACT_ADDRESS = "0x4d2B7a429734348e0010d5cFB5B71D5cA99b86Ca";
 //test
-const Home = ({ startDelay, setStartDelay, createGame, setView, login, logout, authenticated, user }) => {
+const Home = ({ startDelay, setStartDelay, createGame, setView, login, fullLogout, authenticated, user }) => {
     const [showSettings, setShowSettings] = useState(false);
     const { wallets } = useWallets();
 
