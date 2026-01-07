@@ -86,8 +86,17 @@ function App() {
     };
 
     const fullLogout = async () => {
-        clearSession();      // kill UI + game first
-        await privyLogout(); // kill auth
+        try {
+            console.log("Logging out...");
+            clearSession();      // kill UI + game first
+            await privyLogout(); // kill auth
+            console.log("Privy logout complete");
+            window.location.href = '/'; // Hard reset to home
+        } catch (error) {
+            console.error("Logout failed:", error);
+            // Fallback: reload anyway
+            window.location.reload();
+        }
     };
 
     // Animation states

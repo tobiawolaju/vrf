@@ -9,7 +9,7 @@ const CONTRACT_ABI = [
         inputs: [],
         name: 'increment',
         outputs: [],
-        stateMutability: 'nonpayable',
+        edh      stateMutability: 'nonpayable',
         type: 'function',
     },
 ];
