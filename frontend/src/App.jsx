@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { decodeEventLog, createWalletClient, custom } from 'viem';
+import { decodeEventLog, createWalletClient, custom, createPublicClient, http } from 'viem';
 import { requestHardenedRoll, settleHardenedRoll, DICEROLLER_ABI, CONTRACT_ADDRESS } from './lib/vrf';
 import { monadMainnet } from './utils/chains';
 // Pages
@@ -151,9 +151,16 @@ function App() {
                 return;
             }
 
+            // 🛡️ HARDENED CLIENT: Force Monad Connection for Reads/Events
+            // This prevents "0x" errors if usePublicClient defaults to Ethereum
+            const monadClient = createPublicClient({
+                chain: monadMainnet,
+                transport: http()
+            });
+
             try {
                 // 1. Check if already requested (in case of overlap)
-                const status = await publicClient.readContract({
+                const status = await monadClient.readContract({
                     address: CONTRACT_ADDRESS,
                     abi: DICEROLLER_ABI,
                     functionName: 'getDiceStatus',
@@ -177,7 +184,8 @@ function App() {
                     }
                 } else {
                     // 2. Request Roll (Switchboard)
-                    const res = await requestHardenedRoll(roundId, gameId, activeWalletClient, publicClient);
+                    // 2. Request Roll (Switchboard)
+                    const res = await requestHardenedRoll(roundId, gameId, activeWalletClient, monadClient);
                     if (res.success && res.receipt) {
                         console.log("   ✅ Transaction Confirmed. Parsing logs...");
 
@@ -215,7 +223,7 @@ function App() {
                         // Fallback: If no result but requested, Host becomes the Crank
                         if (!foundResult && requestId) {
                             console.log("   🤔 No immediate result. Attempting Host-Side Settlement...");
-                            const settleRes = await settleHardenedRoll(requestId, activeWalletClient, publicClient);
+                            const settleRes = await settleHardenedRoll(requestId, activeWalletClient, monadClient);
 
                             if (settleRes.success && settleRes.receipt) {
                                 for (const log of settleRes.receipt.logs) {
