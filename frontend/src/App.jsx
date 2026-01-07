@@ -17,7 +17,7 @@ import BalatroBackground from './components/BalatroBackground';
 const API_BASE = '/api';
 
 function App() {
-    const { login, logout: privyLogout, authenticated, user } = usePrivy();
+    const { login, logout, authenticated, user } = usePrivy();
     const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
 
@@ -79,11 +79,6 @@ function App() {
         setPlayerId('');
         setGameState(null);
         setView('home');
-    };
-
-    const handleLogout = async () => {
-        clearSession();
-        await privyLogout();
     };
 
     // Animation states
@@ -474,7 +469,7 @@ function App() {
                     createGame={createGame}
                     setView={setView}
                     login={login}
-                    logout={handleLogout} // Clear session AND logout properly
+                    logout={clearSession} // Clear session on logout
                     authenticated={authenticated}
                     user={user}
                 />
