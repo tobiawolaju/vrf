@@ -1,35 +1,37 @@
 # 🎲 MonkeyHand
 
-**MonkeyHand** is a multiplayer dice game architecture exploring how to anchor fast off-chain gameplay to **on-chain verifiable randomness** using oracle-native VRF patterns on Monad.
+**MonkeyHand** is a multiplayer dice game architecture exploring how to coordinate fast off-chain gameplay with **on-chain–enforced randomness and resolution guarantees** on Monad.
 
-The project focuses on **fairness, liveness, and zero-trust backend design**, not on pushing all gameplay on-chain.
+The project focuses on **fairness boundaries, liveness, and zero-trust backend design**, not on pushing full gameplay on-chain.
 
 ---
 
 ## 🧠 What This Demonstrates
 
-- Oracle-based verifiable randomness (Pyth Entropy)
-- Explicit on-chain state machines for critical game actions
+- On-chain randomness generation for game resolution
+- Explicit smart-contract state machines for critical actions
 - Permissionless round finalization (no player or backend stalls)
-- Event-driven backend with **zero authority over outcomes**
-- Practical frontend ↔ backend ↔ smart contract coordination
+- Event-driven backend with **no authority over outcomes**
+- Practical frontend ↔ backend ↔ smart contract orchestration
 
 ---
 
 ## 🔐 Randomness Model (High-Level)
 
-- Gameplay runs off-chain for speed.
-- Each round requests randomness on-chain.
-- An oracle callback finalizes the result immutably.
-- Anyone can finalize or expire stalled rounds.
+- Gameplay logic runs off-chain for speed.
+- Each round requests randomness from a smart contract.
+- The contract finalizes results immutably on-chain.
+- Anyone can advance or expire stalled rounds.
 
-This removes trust in the server, players, or UI while keeping the game performant.
+This constrains trust to the contract itself and removes reliance on the server or UI for correctness.
+
+> Note: Oracle-based VRF was explored architecturally but not used in the final deployed version.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Solidity** — VRF / oracle integration + state machine
+- **Solidity** — randomness + on-chain state machine
 - **Node.js + Viem** — read-only indexer & liveness trigger
 - **React** — multiplayer game UI
 - **Chain:** Monad
@@ -38,10 +40,10 @@ This removes trust in the server, players, or UI while keeping the game performa
 
 ## 🎯 Why It Exists
 
-MonkeyHand is a protocol exercise:  
-how to design **fair, non-stalling multiplayer games** under adversarial conditions without bloating the chain.
+MonkeyHand is a systems-design exercise:  
+how to build **non-stalling, multiplayer Web3 games** where the backend cannot cheat and the frontend cannot lie.
 
-Not a casino. Not a demo token.  
-A systems-thinking project.
+Not a casino. Not a token demo.  
+A protocol-minded game architecture.
 
 ---
